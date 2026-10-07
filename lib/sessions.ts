@@ -18,7 +18,7 @@ export const createSchema=z.object({problemId:z.string().max(100),personaId:z.en
 export const mutationSchema=z.object({revision:z.number().int().nonnegative(),idempotencyKey:z.string().min(8).max(100),stepId:z.string().max(40).optional(),text:z.string().max(2000).optional(),action:z.enum(['correct','valid','dispute','resolve-dispute']).optional(),level:z.number().int().min(1).max(3).optional(),reveal:z.boolean().optional(),provider:z.enum(['mock','live']).optional(),drawing:DrawingSchema.optional()}).strict();
 export type Mutation=z.infer<typeof mutationSchema>;
 const includes={problemVersion:true,personaVersion:true,steps:{orderBy:{position:'asc' as const}},errors:true,corrections:{orderBy:{createdAt:'asc' as const}},hints:true,assessments:true,events:{where:{type:'messages'},orderBy:[{createdAt:'desc' as const},{id:'desc' as const}],take:100}};
-export async function loadSession(id:string,who:Identity){const s=await db.session.findUnique({where:{id},include:includes});assert(s&&owned(s,who),'NOT_FOUND','Session not found.',404);return s;}
+export async function loadSession(id:string,who:Identity){const s=await db.session.findUnique({where:{id},include:includes});assert(s&&owned(s,who)&&s.problemVersion&&s.kind==='problem','NOT_FOUND','Session not found.',404);return {...s,problemVersion:s.problemVersion};}
 const discussionQuery=(id:string)=>({where:{sessionId:id,type:{in:['messages','corrections']}},orderBy:[{createdAt:'desc' as const},{id:'desc' as const}],take:200});
 export function sessionDTO(s:Awaited<ReturnType<typeof loadSession>>,latestMessage?:string,events=s.events):PublicSession{
  const p=ProblemSchema.parse(s.problemVersion.data);const revealed=['completed','revealed'].includes(s.state);
@@ -49,9 +49,9 @@ export async function getSession(id:string,who:Identity){
  await db.$transaction(async tx=>{await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))::text`;const s=await tx.session.findUnique({where:{id}});if(!s||!owned(s,who))return;const pending=await tx.operation.findFirst({where:{sessionId:id,status:'pending',createdAt:{lt:new Date(Date.now()-35000)}}});if(pending){await tx.operation.update({where:{id:pending.id},data:{status:'failed',result:{error:'Operation interrupted. Start a new session or retry with a new key.'}}});await tx.session.update({where:{id},data:{revision:{increment:1},state:s.state==='generating'?'failed':s.state}});}});
  const saved=await loadSession(id,who);const last=await db.sessionEvent.findFirst({where:{sessionId:id},orderBy:{createdAt:'desc'}});const data=last?.data as {message?:string}|undefined;const manual=await db.sessionEvent.findFirst({where:{sessionId:id,type:'manual'},select:{id:true}});return {...sessionDTO(saved,typeof data?.message==='string'?data.message:undefined,await db.sessionEvent.findMany(discussionQuery(id))),mode:manual?'manual' as const:'classroom' as const};
 }
-function configInt(name:string,fallback:number){const v=Number(process.env[name]??fallback);assert(Number.isSafeInteger(v)&&v>0,'CONFIG',`Invalid ${name}.`,503);return v;}
-async function incrementQuota(tx:Prisma.TransactionClient,key:string,max:number,amount=1){await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))::text`;const q=await tx.quota.upsert({where:{key},create:{key,count:0,expiresAt:new Date(Date.now()+2*86400000)},update:{}});assert(q.count+amount<=max,'QUOTA','The configured usage limit has been reached.',429);await tx.quota.update({where:{key},data:{count:{increment:amount}}});}
-function recorder(sessionId:string,model:string,deadline:number):CallRecorder{return async(purpose,run)=>{
+export function configInt(name:string,fallback:number){const v=Number(process.env[name]??fallback);assert(Number.isSafeInteger(v)&&v>0,'CONFIG',`Invalid ${name}.`,503);return v;}
+export async function incrementQuota(tx:Prisma.TransactionClient,key:string,max:number,amount=1){await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))::text`;const q=await tx.quota.upsert({where:{key},create:{key,count:0,expiresAt:new Date(Date.now()+2*86400000)},update:{}});assert(q.count+amount<=max,'QUOTA','The configured usage limit has been reached.',429);await tx.quota.update({where:{key},data:{count:{increment:amount}}});}
+export function recorder(sessionId:string,model:string,deadline:number):CallRecorder{return async(purpose,run)=>{
  const amount=configInt('MODEL_CALL_RESERVATION_CENTS',50);
  const call=await db.$transaction(async tx=>{
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${sessionId}))::text`;
@@ -91,7 +91,7 @@ export async function mutateSession(id:string,kind:'next'|'corrections'|'hints'|
  const hash=createHash('sha256').update(JSON.stringify({kind,...body})).digest('hex');
  const reservation=await db.$transaction(async tx=>{
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))::text`;
-  const s=await tx.session.findUnique({where:{id},include:includes});assert(s&&owned(s,who),'NOT_FOUND','Session not found.',404);
+  const s=await tx.session.findUnique({where:{id},include:includes});assert(s&&owned(s,who)&&s.problemVersion&&s.kind==='problem','NOT_FOUND','Session not found.',404);
   const op=await tx.operation.findUnique({where:{sessionId_key:{sessionId:id,key:body.idempotencyKey}}});
   if(op){assert(op.requestHash===hash,'IDEMPOTENCY','This key was used for a different request.',409);assert(op.status!=='pending','IN_PROGRESS','An operation is already running.',409);assert(op.status==='complete','RETRY','Previous operation failed. Reload and use a new key.',409);return {cached:op.result};}
   assert(!await tx.operation.findFirst({where:{sessionId:id,status:'pending'}}),'IN_PROGRESS','A session operation is already running.',409);
@@ -107,31 +107,32 @@ export async function mutateSession(id:string,kind:'next'|'corrections'|'hints'|
   if(kind==='provider')assert(body.provider,'PROVIDER','Choose a response provider.');
   await tx.operation.create({data:{sessionId:id,key:body.idempotencyKey,kind,requestHash:hash,baseRevision:s.revision,status:'pending'}});
   await tx.session.update({where:{id},data:{revision:{increment:1}}});
-  return {s,st,revision:s.revision+1};
+  return {s:{...s,problemVersion:s.problemVersion},st,revision:s.revision+1};
  });
  if('cached' in reservation)return reservation.cached as unknown as {session:PublicSession;hint?:string};
  const {s,st,revision}=reservation;
  const p=ProblemSchema.parse(s.problemVersion.data);const error=s.errors.find(e=>e.rootStep===body.stepId);const template:Template|undefined=error?p.templates.find(t=>t.id===error.templateId):undefined;
  let evaluation:Evaluation|undefined;let hint:string|undefined;let reply:string|undefined;let response:ConversationResult|undefined;let workUpdated=false;
  try{
-  const connection=(s.provider==='live'&&(kind==='messages'||(kind==='corrections'&&!['dispute','resolve-dispute'].includes(body.action??''))))||(kind==='provider'&&body.provider==='live')?await resolveAi(who):null;
-  const provider=connection?liveProvider(s.model??connection.model,connection.apiKey):mockProvider;
-  const record=recorder(id,s.model??connection?.model??'mock',Date.now()+30000);
+  const connection=((s.provider==='live'||body.provider==='live')&&(kind==='messages'||(kind==='corrections'&&!['dispute','resolve-dispute'].includes(body.action??''))))||(kind==='provider'&&body.provider==='live')?await resolveAi(who):null;
+  const provider=connection?liveProvider(connection.model,connection.apiKey):mockProvider;
+  const record=recorder(id,connection?.model??'mock',Date.now()+30000);
   const conversation={text:body.text??'',step:st?.current as unknown as Step,persona:findPersona(s.personaVersionId)!,history:sessionDTO(s).discussion??sessionDTO(s).conversation,problem:publicProblem(s.problemVersion.problemId,s.problemVersion.id,s.problemVersion.version,p),teacherDrawing:body.drawing};
   if(kind==='messages'){response=await provider.converse(conversation,record);reply=response.message;}
   if(kind==='corrections'&&body.action!=='valid'&&!['dispute','resolve-dispute'].includes(body.action??'')){
    evaluation=await provider.evaluate(body.text!,p,st!.current as unknown as Step,template,record);
-   if(s.provider==='live'){
+   if(connection){
     const updated=evaluation.verdict==='accepted'&&error?p.reference.find(step=>step.id===body.stepId)!:conversation.step;
     response=await provider.converse({...conversation,step:updated,correctionOutcome:evaluation.verdict},record);reply=response.message;
    }
   }
-  if(kind==='corrections'&&body.action==='valid'&&s.provider==='live')evaluation=await provider.evaluate('Independently check the current student calculation, its assumptions, numerical result, and units against the stated problem. Do not treat this check request as evidence that the work is correct.',p,st!.current as unknown as Step,template,record);
+  if(kind==='corrections'&&body.action==='valid'&&connection)evaluation=await provider.evaluate('Independently check the current student calculation, its assumptions, numerical result, and units against the stated problem. Do not treat this check request as evidence that the work is correct.',p,st!.current as unknown as Step,template,record);
   if(kind==='hints'){const cue=p.reference.find(ref=>ref.id===body.stepId)!;hint=template?(body.level===1?template.nudge:body.level===2?template.cue:template.guidance):body.level===1?'Check the direction, dimensions, and assumptions for this step.':body.level===2?cue.equation||p.diagramCaption:cue.text;}
   const output=await db.$transaction(async tx=>{
    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))::text`;
    const current=await tx.session.findUniqueOrThrow({where:{id}});assert(current.revision===revision,'STALE','The session changed before the result could be saved.',409);
    let message=reply??'';
+   if(connection&&(kind==='messages'||kind==='corrections'))await tx.session.update({where:{id},data:{provider:'live',model:connection.model}});
    if(kind==='provider'){
     await tx.session.update({where:{id},data:{provider:body.provider,model:body.provider==='live'?connection!.model:null}});
     message=body.provider==='live'?'Live OpenAI is ready. Your saved conversation and guide remain.':'Demo responses selected. No API calls are made.';
@@ -187,7 +188,8 @@ export async function mutateSession(id:string,kind:'next'|'corrections'|'hints'|
    await tx.session.update({where:{id},data:{revision:{increment:1}}});
    await tx.sessionEvent.create({data:{sessionId:id,type:kind,data:json({stepId:body.stepId,action:kind==='corrections'?(body.action??'correct'):body.action,message,...(kind==='messages'?{teacher:body.text,promptVersion:CHAT_PROMPT_VERSION,workUpdated,...(response?.work?{work:response.work}:{}),...(response?.work?.drawing?{drawing:response.work.drawing}:{}),...(body.drawing?{teacherDrawing:body.drawing}:{})}:kind==='corrections'&&!['dispute','resolve-dispute'].includes(body.action??'')?{teacher:body.action==='valid'?'This step is valid.':body.text,workUpdated,...(response?.work?{work:response.work}:{}),...(response?.work?.drawing?{drawing:response.work.drawing}:{})}:{})})}});
    const saved=await tx.session.findUniqueOrThrow({where:{id},include:includes});
-   const result={session:sessionDTO(saved,message,await tx.sessionEvent.findMany(discussionQuery(id))),...(hint?{hint}:{})};
+   assert(saved.problemVersion,'STATE','The reference session lost its problem.',409);
+   const result={session:sessionDTO({...saved,problemVersion:saved.problemVersion},message,await tx.sessionEvent.findMany(discussionQuery(id))),...(hint?{hint}:{})};
    await tx.operation.update({where:{sessionId_key:{sessionId:id,key:body.idempotencyKey}},data:{status:'complete',result:json(result)}});
    return result;
   });

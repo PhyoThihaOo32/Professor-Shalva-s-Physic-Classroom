@@ -3,6 +3,7 @@ const x=z.number().min(0).max(1000),y=z.number().min(0).max(600);
 const color=z.enum(['ink','teal','violet','coral']);
 const point=z.object({x,y}).strict();
 export const DrawingElementSchema=z.discriminatedUnion('kind',[
+ z.object({kind:z.literal('region'),points:z.array(point).min(3).max(12),color}).strict(),
  z.object({kind:z.literal('line'),x1:x,y1:y,x2:x,y2:y,color}).strict(),
  z.object({kind:z.literal('arrow'),x1:x,y1:y,x2:x,y2:y,color}).strict(),
  z.object({kind:z.literal('circle'),cx:x,cy:y,r:z.number().min(1).max(300),color}).strict(),

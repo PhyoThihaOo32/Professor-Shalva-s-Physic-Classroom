@@ -2,6 +2,32 @@
 
 # Live conversations and revised work
 
+## Free-question live classroom — October 7, 2026
+
+The current Classroom route opens a separate conversation for the selected student with no assigned chapter, problem, authored steps, or initial greeting. The teacher provides a question through the bottom input. The room resumes independently from the read-only Problems shelf; browsing a question or solution never selects a live problem. Earlier saved problem sessions remain accessible at their session routes.
+
+All three students receive explicit provisional-attempt instructions: show a believable shortcut, incomplete justification, overlooked condition, or plausible error appropriate to their personality. They can get intermediate steps right. After specific teacher guidance, they revise their calculation or diagram and retain the correction. These are model instructions rather than a guarantee that every first answer contains a mistake.
+
+A separate bounded model review inspects substantive exchanges and any generated work. A small Teacher instinct cue flags a possible concern without revealing a solution. Brief greetings and thanks without work skip the review. No visible cue means no concern was identified, not certified correctness. If review fails or its budget is exhausted, the student reply stays saved with an unobtrusive Not checked cue. The reviewer and student share the existing deadline and spending controls.
+
+Open rooms preserve ownership, encrypted personal-key access, revision checks, idempotency, operation locking, chronological text/math/drawings, and history export/deletion. Missing keys and student-generation failures retain the input without inserting a canned response. Opening a room requires no key and makes no model call. Sending a substantive message normally makes a student call plus a separate review call; their usage is recorded. The current configured model is used for each message.
+
+## Distinct live student personalities — October 7, 2026
+
+All three current students now receive separate trusted character instructions. Bart is clever, mischievous, distracted, and impatient: he can guess a familiar formula or skip a justification, defend an initial idea, become engaged by a challenge, and improve after a specific correction. His weakness is inconsistent effort, so correct answers and useful insights also belong in his behavior. SpongeBob is enthusiastic and persistent, sometimes confusing related concepts or rushing units; concrete pictures help him connect equations to motion. Stewie is articulate and proud, strong at patterns and algebra, but inclined toward unnecessary complexity and untested assumptions; a counterexample should lead to a precise concession and revision.
+
+The live model generates replies from the actual teacher message and recent exchanges. Character descriptions specify habits and learning responses, rather than canned replies or required catchphrases. They permit plausible uncertain attempts without requiring a mistake on every turn. Explicit requests for calculations, units, and drawings still require substantive work, and clearly explained corrections should carry into later related tasks. Social messages remain social. The authored greeting is no longer included as a voice template in every live request.
+
+The six-exchange history now includes the exact student work snapshots and teacher annotations saved with those exchanges. A later reply can see the original shortcut and the subsequent correction, instead of receiving every earlier work field as null. Existing history records without snapshots remain compatible. Character instructions are confined to live conversation; reviewed reference generation and the independent physics evaluator remain separate. New prompt version: `2026-10-07.conversation.v9`. Current runtime instructions apply to existing classrooms on their next message; no database reseed or reset is required. Offline mock replies remain labeled demos, not live character generation.
+
+## Browser connection and repeated-reply fix — October 7, 2026
+
+The reported repeated Bart/SpongeBob messages were offline mock replies from a Chrome guest identity with no connected key. The Codex browser had a separate personal connection. The identified Chrome identity was connected once to the user's existing app key, re-encrypted for that identity; this did not create a shared server key or change general credential isolation.
+
+The `/classroom` composer now explicitly requests live AI on submission. An unconnected browser gets a Settings connection error with its text preserved, rather than an appended mock response. Its compact header says Connect AI. Saving a key in another tab works on the next send without a provider selector or a classroom reset. Successful sends promote an older mock classroom atomically and use the currently configured model. Explicit saved-session demo routes remain available for offline fixtures.
+
+Live validation rejects normalized duplicates of the last six student replies (longer than 30 characters) and generic assistant openings such as How may I assist you. One bounded model repair requests a fresh in-character reply; a second invalid output produces an explicit failure instead of a canned substitution. Quick guesses may stay as brief tentative messages until the teacher asks for working. There is no fixed reply carousel.
+
 ## Chat as the classroom workspace
 
 The latest interface removes Show work board and the separate live board entirely. Each student reply can contain its explanation, worked calculation, rendered LaTeX equation, and drawn diagram in one scrolling chat. The bottom input and existing palette remain. Recalculations add new replies rather than replacing what earlier messages displayed. A small pencil button opens teacher drawing/annotation tools inline at the end of the chat; closing the editor restores focus to the input, and sending saves the annotations with the response. No panel opens automatically when student work changes.

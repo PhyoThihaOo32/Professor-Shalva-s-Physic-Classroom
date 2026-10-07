@@ -1,3 +1,4 @@
+import {openRoom,getOpenRoom,messageOpenRoom,openSchema,openMessageSchema} from './open-classroom';
 import { ProblemSchema } from './schemas';
 import 'server-only';
 import { NextResponse } from 'next/server';
@@ -31,6 +32,11 @@ export async function handle(request:Request){
    if(method==='DELETE'&&!path[1])return ok(await removeConnection(who));
    if(method==='POST'&&path[1]==='test')return ok(await testConnection(who));
   }
+  if(path[0]==='classrooms'){
+   if(path.length===1&&method==='POST')return ok(await openRoom(openSchema.parse(await readBody(request)),who),201);
+   if(path.length===2&&method==='GET')return ok(await getOpenRoom(path[1],who));
+   if(path.length===3&&path[2]==='messages'&&method==='POST')return ok(await messageOpenRoom(path[1],openMessageSchema.parse(await readBody(request)),who));
+  }
   if(path[0]==='sessions'){
    if(!path[1]&&method==='POST')return ok(await createSession(createSchema.parse(await readBody(request)),who),201);
    if(path[1]&&!path[2]&&method==='GET')return ok(await getSession(path[1],who));
@@ -40,10 +46,10 @@ export async function handle(request:Request){
   if(path[0]==='progress'&&method==='GET'){
    const sessions=await db.session.findMany({where:ownership,orderBy:{updatedAt:'desc'},include:{problemVersion:true,assessments:true,hints:true,errors:true,events:{select:{type:true}},_count:{select:{corrections:true}}}});
    const finished=sessions.filter(s=>['completed','revealed'].includes(s.state));
-   return ok({sessions:sessions.map(s=>({mode:s.events.some(event=>event.type==='manual')?'manual':'classroom',id:s.id,title:ProblemSchema.parse(s.problemVersion.data).title,chapterId:ProblemSchema.parse(s.problemVersion.data).chapterId,state:s.state,provider:s.provider,difficulty:s.difficulty,personaId:s.personaVersionId,updatedAt:s.updatedAt,corrections:s._count.corrections,hints:s.hints.length})),stats:{sessions:sessions.length,finished:finished.length,corrections:sessions.reduce((n,s)=>n+s._count.corrections,0),hints:sessions.reduce((n,s)=>n+s.hints.length,0)},families:finished.flatMap(s=>s.errors.map(e=>({family:e.family,resolved:e.resolved,score:e.resolved?s.assessments.find(a=>a.rootStep===e.rootStep)?.score??0:0,provisional:!!s.assessments.find(a=>a.rootStep===e.rootStep)?.provisional}))) });
+   return ok({sessions:sessions.map(s=>({mode:s.kind==='open-classroom'?'open-classroom':s.events.some(event=>event.type==='manual')?'manual':'classroom',id:s.id,title:s.kind==='open-classroom'?'Open classroom':ProblemSchema.parse(s.problemVersion!.data).title,chapterId:s.kind==='open-classroom'?undefined:ProblemSchema.parse(s.problemVersion!.data).chapterId,state:s.state,provider:s.provider,difficulty:s.difficulty,personaId:s.personaVersionId,updatedAt:s.updatedAt,corrections:s._count.corrections,hints:s.hints.length})),stats:{sessions:sessions.length,finished:finished.length,corrections:sessions.reduce((n,s)=>n+s._count.corrections,0),hints:sessions.reduce((n,s)=>n+s.hints.length,0)},families:finished.flatMap(s=>s.errors.map(e=>({family:e.family,resolved:e.resolved,score:e.resolved?s.assessments.find(a=>a.rootStep===e.rootStep)?.score??0:0,provisional:!!s.assessments.find(a=>a.rootStep===e.rootStep)?.provisional}))) });
   }
   if(path[0]==='history'&&path[1]==='export'&&method==='GET'){
-   const sessions=await db.session.findMany({where:ownership,select:{id:true}});const data=await Promise.all(sessions.map(async s=>sessionDTO(await loadSession(s.id,who))));return ok({exportedAt:new Date().toISOString(),sessions:data});
+   const sessions=await db.session.findMany({where:ownership,select:{id:true,kind:true}});const data=await Promise.all(sessions.map(async s=>s.kind==='open-classroom'?getOpenRoom(s.id,who):sessionDTO(await loadSession(s.id,who))));return ok({exportedAt:new Date().toISOString(),sessions:data});
   }
   if(path[0]==='history'&&!path[1]&&method==='DELETE'){const input=z.object({confirm:z.literal('DELETE MY HISTORY')}).strict().parse(await readBody(request));void input;const result=await db.session.deleteMany({where:ownership});return ok({deleted:result.count});}
   if(path[0]==='owner'){

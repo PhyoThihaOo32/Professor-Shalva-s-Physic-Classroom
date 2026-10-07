@@ -15,7 +15,7 @@ test('Problems combines references without creating or replacing classroom sessi
  await page.goto('/library/manual/ch2-driving-home?student=bart-v1',{waitUntil:'load'});await expect(page).toHaveURL(/\/problems\/ch2-driving-home\?student=bart-v1$/);await expect(page.getByRole('heading',{name:'Worked solution'})).toBeVisible();
  for(const route of ['/progress','/resources']){await page.goto(route,{waitUntil:'load'});await expect(page).toHaveURL(/\/library$/);await expect(page.getByRole('heading',{name:'Problems',exact:true})).toBeVisible();}
  expect(mutations).toEqual([]);expect((await (await page.request.get('/api/progress',{maxRetries:1})).json()).data.sessions).toHaveLength(1);
- await nav.getByRole('link',{name:'Classroom',exact:true}).click();await expect(page.getByLabel('Message your student')).toBeVisible();await expect.poll(()=>page.evaluate(()=>localStorage.getItem('chalklight-classroom-bart-v1'))).toBe(classroomId);
+ await nav.getByRole('link',{name:'Classroom',exact:true}).click();await expect(page.getByLabel('Message your student')).toBeVisible();expect((await (await page.request.get(`/api/classrooms/${classroomId}`)).json()).data.id).toBe(classroomId);await expect(page.locator('.classroom-title')).not.toContainText('The drive home');
 });
 
 test('student calculations stay inside each chat reply without a separate work board',async({page})=>{
@@ -30,8 +30,62 @@ test('student calculations stay inside each chat reply without a separate work b
  await expect(page.getByRole('region',{name:'Student work board'})).toHaveCount(0);await expect(page.getByRole('button',{name:'Show work board',exact:true})).toHaveCount(0);await expect(chat.getByText('Board updated',{exact:true})).toHaveCount(0);await expect(chat.getByText('Read the journey',{exact:true})).toHaveCount(0);
  await page.setViewportSize({width:1280,height:1000});await page.screenshot({path:'docs/chat-calculations.png',fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await expect(chat.locator('.student-work')).toHaveCount(2);
 });
+test('legacy calculations and crowded diagrams remain readable in chat on desktop and phone',async({page})=>{
+ const session=(await (await create(page.request,{problemId:'ch2-driving-home',personaId:'bart-v1'})).json()).data;
+ const drawing={title:'Trip legs and travel time',description:'The violet arrow shows the first 210 km at 95 km/h. The teal arrow shows the remaining distance at 65 km/h after the rain starts.',elements:[
+  {kind:'line',x1:140,y1:241,x2:557,y2:241,color:'ink'},
+  {kind:'arrow',x1:150,y1:257,x2:330,y2:257,color:'violet'},{kind:'arrow',x1:360,y1:257,x2:550,y2:257,color:'teal'},
+  {kind:'text',x:220,y:210,text:'210 km (v=95 km/h, t=t_1)',color:'violet'},{kind:'text',x:438,y:210,text:'d_2 km (v=65 km/h, t=t_2)',color:'teal'},
+  {kind:'text',x:270,y:280,text:'t_1 = 210/95 h',color:'violet'},{kind:'text',x:470,y:280,text:'t_2 = 4.5 - t_1 h',color:'teal'}]};
+ const work={...session.steps[0].current,title:'Recalculate average speed with exact values',text:String.raw`First leg time: t_1=\frac{210}{95} \text{ h} \approx 2.210526 \text{ h}. Second leg time: t_2=4.5 - t_1 = 4.5 - \frac{210}{95} \approx 2.289474 \text{ h}. Second leg distance: d_2 = 65 \times t_2 \approx 148.815 \text{ km}. Total distance: d = 210 + 148.815 = 358.815 \text{ km}. Average speed: v\_{avg} = \frac{d}{4.5} \approx 79.73 \text{ km/h}.`,equation:String.raw`v_{avg}=\frac{358.815}{4.5}\approx79.73\,\mathrm{km/h}`,value:79.73,unit:'km/h',diagram:false,drawing};
+ const draft={...session,discussion:[{id:'readable-legacy',kind:'message',stepId:work.id,teacher:'Show the travel times and explain the diagram.',student:'Here are the two legs, teach.',createdAt:'2026-10-07T00:00:00Z',workUpdated:true,work}]};
+ await page.route(`**/api/sessions/${session.id}`,route=>route.fulfill({json:{data:draft}}));
+ await page.goto(`/sessions/${session.id}`);const reply=page.locator('.student-message').last();
+ await expect(reply.locator('.work-explanation p')).toHaveCount(5);expect(await reply.locator('.katex').count()).toBeGreaterThanOrEqual(6);
+ expect(await reply.innerText()).not.toMatch(/\\(?:frac|text|approx)|```/);await expect(reply.locator('.katex-error')).toHaveCount(0);
+ await expect(reply.locator('.student-drawing figcaption').getByText(drawing.description,{exact:true})).toBeVisible();await expect(reply.locator('svg title')).toHaveCount(0);
+ const boxes=await reply.locator('.diagram-label text').evaluateAll(nodes=>nodes.map(node=>{const b=(node as SVGGraphicsElement).getBBox();return {x:b.x,y:b.y,w:b.width,h:b.height};}));
+ for(const [i,a] of boxes.entries())for(const b of boxes.slice(i+1))expect(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y).toBe(false);
+ await page.setViewportSize({width:1280,height:1400});await reply.screenshot({path:'docs/readable-diagram-desktop.png'});
+ await reply.locator('.student-drawing').screenshot({path:'docs/readable-diagram-detail.png'});
+ await page.setViewportSize({width:390,height:844});await expect(reply.locator('.diagram-legend li')).toHaveCount(4);
+ for(const row of await reply.locator('.diagram-legend li').all())await expect(row).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await reply.screenshot({path:'docs/readable-diagram-mobile.png'});
+});
+test('worked answers show distinct formulas, substitutions, results, and a shaded motion graph',async({page})=>{
+ const session=(await (await create(page.request,{problemId:'ch2-driving-home',personaId:'bart-v1'})).json()).data;
+ const drawing={title:'Velocity–time graph',description:'Velocity rises from 0 to 20 m/s in 8 s. The slope is 2.5 m/s². The shaded triangular area is 80 m, the distance traveled.',elements:[
+  {kind:'region',points:[{x:180,y:440},{x:820,y:440},{x:820,y:120}],color:'teal'},
+  {kind:'arrow',x1:180,y1:440,x2:900,y2:440,color:'ink'},{kind:'arrow',x1:180,y1:440,x2:180,y2:80,color:'ink'},
+  {kind:'line',x1:820,y1:120,x2:820,y2:440,color:'violet'},
+  {kind:'line',x1:180,y1:440,x2:820,y2:120,color:'teal'},
+  {kind:'text',x:70,y:50,text:'Velocity (m/s)',color:'ink'},{kind:'text',x:620,y:550,text:'Time (s)',color:'ink'},
+  {kind:'text',x:88,y:127,text:'20',color:'ink'},{kind:'text',x:168,y:490,text:'0',color:'ink'},{kind:'text',x:812,y:490,text:'8',color:'ink'},
+  {kind:'text',x:500,y:400,text:'Area = 80 m',color:'teal'},{kind:'text',x:500,y:185,text:'Slope = 2.5 m/s²',color:'violet'}]};
+ const work={...session.steps[0].current,title:'Acceleration and distance',text:'The car accelerates uniformly from rest.',equation:'',value:80,unit:'m',diagram:false,drawing,solution:[
+  {title:'Find acceleration',explanation:'Acceleration is the change in velocity divided by elapsed time. The car starts from rest.',formula:String.raw`a=\frac{v_f-v_i}{t}`,substitution:String.raw`a=\frac{20-0}{8}`,result:String.raw`a=2.5\,\mathrm{m/s^2}`},
+  {title:'Find distance traveled',explanation:'The acceleration is constant and the initial velocity is zero, so only the acceleration term contributes.',formula:String.raw`d=v_i t+\frac{1}{2}at^2`,substitution:String.raw`d=(0)(8)+\frac{1}{2}(2.5)(8)^2`,result:String.raw`d=80\,\mathrm{m}`} ]};
+ const draft={...session,discussion:[{id:'worked-example',kind:'message',stepId:work.id,teacher:'A hypothetical car starts from rest and reaches 20 m/s in 8 s at constant acceleration. Show acceleration and distance step by step with a diagram.',student:'I get 2.5 m/s² and 80 m, teach. The graph makes the distance easier to see.',createdAt:'2026-10-07T00:00:00Z',workUpdated:true,work}]};
+ await page.route(`**/api/sessions/${session.id}`,route=>route.fulfill({json:{data:draft}}));
+ await page.setViewportSize({width:1280,height:1600});await page.goto(`/sessions/${session.id}`);
+ const reply=page.locator('.student-message').last(),steps=reply.locator('.worked-solution li');await expect(steps).toHaveCount(2);
+ await expect(steps.first().getByRole('heading',{name:'1. Find acceleration'})).toBeVisible();
+ await expect(steps.last().getByRole('heading',{name:'2. Find distance traveled'})).toBeVisible();
+ for(const step of await steps.all())await expect(step.locator('.equation.block')).toHaveCount(3);
+ await expect(reply.locator('polygon')).toHaveCount(1);await expect(reply.locator('.student-drawing figcaption p')).toContainText('shaded triangular area is 80 m');
+ await expect(reply.locator('.katex-error')).toHaveCount(0);await reply.screenshot({path:'docs/worked-motion-answer.png'});
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await expect(reply.locator('.student-drawing')).toBeVisible();await expect(reply.locator('.diagram-legend')).toContainText('Velocity (m/s)');
+ await reply.screenshot({path:'docs/worked-motion-answer-mobile.png'});
+});
+async function openOfflineChat(page:import('@playwright/test').Page,student:string){
+ const response=await create(page.request,{problemId:'ch2-driving-home',personaId:student});expect(response.ok()).toBe(true);
+ const session=(await response.json()).data;await page.goto(`/sessions/${session.id}`);await expect(page.getByLabel('Message your student')).toBeVisible();return session.id;
+}
+
 test('Enter sends once, Shift+Enter adds a line, and composition does not send',async({page})=>{
- await page.goto('/classroom?student=bart-v1');const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
+ await openOfflineChat(page,'bart-v1');const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
  const id=(await (await page.request.get('/api/progress')).json()).data.sessions[0].id;
  const before=(await (await page.request.get(`/api/sessions/${id}`)).json()).data;
  await input.fill('   ');await input.press('Enter');await expect(input).toHaveValue('   ');
@@ -174,7 +228,7 @@ test('mobile entry flow reaches the classroom and changing students updates the 
 
 test('classroom chat survives browsing separate problem references',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/classroom?student=stewie-v1');
+ await openOfflineChat(page,'stewie-v1');
  await expect(page.getByRole('heading',{name:'Stewie’s classroom'})).toBeVisible();
  await expect(page.locator('.classroom-title')).toContainText('The drive home');
  await expect(page.getByRole('heading',{name:'Problems',exact:true})).toHaveCount(0);
@@ -194,7 +248,7 @@ test('classroom chat survives browsing separate problem references',async({page}
  await expect(page).toHaveURL(/\/library/);await expect(page.getByRole('heading',{name:'Problems',exact:true})).toBeVisible();
  await expect(page.getByRole('link',{name:/The sprinter’s start/})).toBeVisible();await expect(page.getByText(/Waiting for Fig. 2–40/)).toBeVisible();
  await page.getByRole('link',{name:/A changing position/}).click();await expect(page.getByRole('heading',{name:'Worked solution'})).toBeVisible();await expect(page.locator('.reference-question .motion-diagram')).toBeVisible();
- await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Classroom',exact:true}).click();await expect(page.getByLabel('Message your student')).toBeVisible();await expect(page.locator('.classroom-title')).toContainText('The drive home');await expect(log.getByText('One more thought about the first step.',{exact:true})).toBeVisible();
+ await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Classroom',exact:true}).click();await expect(page.getByLabel('Message your student')).toBeVisible();await expect(page.locator('.classroom-title')).not.toContainText('The drive home');await page.goto(`/sessions/${id}`);await expect(log.getByText('One more thought about the first step.',{exact:true})).toBeVisible();
  const active=await page.evaluate(()=>localStorage.getItem('chalklight-classroom-stewie-v1'));expect(active).toBe(id);
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  expect(errors).toEqual([]);
@@ -229,48 +283,74 @@ test('sidebar folds, preserves navigation and preference, and restores on mobile
 });
 
 
-test('conversation shares one blended panel and API key setup preserves the classroom',async({page,browser})=>{
+test('open conversation and API key setup preserve the room without exposing credentials',async({page,browser})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/classroom?student=bart-v1');const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
- await input.fill('Let’s revisit the travel time.');await page.getByRole('button',{name:'Send message',exact:true}).click();
- const panel=page.getByRole('region',{name:'Conversation with Bart'});await expect(panel.getByRole('log')).toBeVisible();await expect(panel.getByLabel('Message your student')).toBeVisible();
- expect(await panel.locator('.conversation-composer').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
- await expect(page.getByRole('button',{name:'Show work board',exact:true})).toHaveCount(0);
- await expect(page.getByRole('region',{name:'Student work board'})).toHaveCount(0);
- await expect(page.locator('.classroom-header')).toBeVisible();
- await expect(page.getByRole('group',{name:'Message purpose'})).toHaveCount(0);
- await expect(page.getByLabel('Classroom responses',{exact:true})).toHaveCount(0);
- const id=await page.evaluate(()=>localStorage.getItem('chalklight-classroom-bart-v1'));
- await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Settings',exact:true}).click();await expect(page.getByRole('heading',{name:'Live student conversations',exact:true})).toBeVisible();
- const fakeKey='sk-browser-test-fixture-no-openai-calls';
- await page.getByLabel('OpenAI API key',{exact:true}).fill(fakeKey);await page.getByLabel('Model',{exact:true}).fill('gpt-4.1-mini');await page.getByRole('button',{name:'Save API key',exact:true}).click();
+ const id=(await (await page.request.get('/api/progress')).json()).data.sessions[0].id;
+ expect(await page.locator('.conversation-composer').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+ await expect(page.locator('.classroom-question')).toHaveCount(0);await expect(page.locator('.classroom-title h2')).toHaveCount(0);
+ await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Settings',exact:true}).click();
+ const fakeKey='sk-browser-test-fixture-no-openai-calls';await page.getByLabel('OpenAI API key',{exact:true}).fill(fakeKey);await page.getByLabel('Model',{exact:true}).fill('gpt-4.1-mini');await page.getByRole('button',{name:'Save API key',exact:true}).click();
  await expect(page.getByText(/Key saved securely/)).toBeVisible();await expect(page.getByLabel('OpenAI API key',{exact:true})).toHaveValue('');
- await page.reload();await expect(page.getByText(/Your key is saved/)).toBeVisible();await expect(page.getByLabel('OpenAI API key',{exact:true})).toHaveValue('');
+ await page.reload();await expect(page.getByText(/Your key is saved/)).toBeVisible();
  for(const path of ['/api/ai-connection','/api/config','/api/history/export'])expect(await (await page.request.get(path)).text()).not.toContain(fakeKey);
  expect(await page.evaluate(()=>JSON.stringify({...localStorage}))).not.toContain(fakeKey);
  const stranger=await browser.newContext();expect((await (await stranger.request.get(`${origin}/api/ai-connection`)).json()).data.personal).toBe(false);await stranger.close();
  await page.getByRole('link',{name:/Return to classroom/}).click();await expect(input).toBeVisible();await expect(page.getByRole('link',{name:'Live',exact:true})).toBeVisible();
- expect(await page.evaluate(()=>localStorage.getItem('chalklight-classroom-bart-v1'))).toBe(id);await expect(panel.getByText('Let’s revisit the travel time.',{exact:true})).toBeVisible();
- await page.reload();await expect(page.getByRole('link',{name:'Live',exact:true})).toBeVisible();
+ expect((await (await page.request.get('/api/progress')).json()).data.sessions[0].id).toBe(id);expect((await (await page.request.get(`/api/classrooms/${id}`)).json()).data.discussion).toEqual([]);
  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'Remove API key',exact:true}).click();await expect(page.getByText('Your personal key was removed.',{exact:true})).toBeVisible();
- await expect(page.getByRole('button',{name:'Remove API key',exact:true})).toHaveCount(0);
- await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.getByRole('link',{name:/Return to classroom/}).click();await expect(input).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:'docs/blended-classroom-mobile.png',fullPage:true});await page.setViewportSize({width:1360,height:1000});await page.screenshot({path:'docs/blended-classroom.png',fullPage:true});
- expect(errors).toEqual([]);
+ await page.setViewportSize({width:390,height:844});await page.getByRole('link',{name:/Return to classroom/}).click();await expect(input).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
 });
 
-
 test('bottom input and inline paper support drawn replies, annotations, persistence, and mobile',async({page})=>{
- const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/classroom?student=spongebob-v1');const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await openOfflineChat(page,'spongebob-v1');const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
  const composer=page.locator('.conversation-composer'),log=page.getByRole('log',{name:'Teacher and student conversation'});expect(await composer.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');expect(await composer.evaluate(el=>getComputedStyle(el).borderRadius)).toBe('0px');expect((await composer.boundingBox())!.y+(await composer.boundingBox())!.height).toBeGreaterThan(680);await expect(composer.locator('.composer-footer')).toHaveCount(0);
  await page.getByRole('button',{name:'Draw or annotate',exact:true}).click();const editor=log.getByRole('region',{name:'Drawing annotations'});await expect(editor.getByRole('group',{name:'Diagram tools'})).toBeVisible();await expect(page.getByRole('region',{name:'Student work board'})).toHaveCount(0);
  await editor.getByRole('button',{name:'Label',exact:true}).click();await editor.getByLabel('Diagram label').fill('positive direction');await editor.getByRole('button',{name:'Add label to paper'}).click();await expect(editor.locator('svg text')).toContainText(['positive direction']);
  await editor.getByRole('button',{name:'Arrow',exact:true}).click();const paper=await editor.locator('.drawing-paper').boundingBox();expect(paper).not.toBeNull();await page.mouse.move(paper!.x+paper!.width*.4,paper!.y+paper!.height*.45);await page.mouse.down();await page.mouse.move(paper!.x+paper!.width*.65,paper!.y+paper!.height*.45,{steps:6});await page.mouse.up();await expect(editor.locator('.drawing-paper>line')).toHaveCount(1);
  await editor.getByRole('button',{name:'Undo annotation'}).click();await expect(editor.locator('.drawing-paper>line')).toHaveCount(0);
  await editor.getByRole('button',{name:'Pen',exact:true}).click();await page.mouse.move(paper!.x+paper!.width*.4,paper!.y+paper!.height*.5);await page.mouse.down();await page.mouse.move(paper!.x+paper!.width*.6,paper!.y+paper!.height*.6,{steps:8});await page.mouse.up();await expect(editor.locator('.drawing-paper>path')).toHaveCount(1);await editor.getByRole('button',{name:'Undo annotation'}).click();await expect(editor.locator('.drawing-paper>path')).toHaveCount(0);
- await input.fill('Draw a diagram explaining the direction of motion.');await input.press('Enter');await expect(log.locator('.student-message .student-drawing')).toBeVisible();await expect(editor).toHaveCount(0);await expect(log.locator('.student-work')).toHaveCount(1);await expect(log.locator('.student-message .student-drawing svg>text')).toContainText(['start','motion →','finish','v₁ = 95 km/h','d₁ = 210 km','v₂ = 65 km/h','t = 4.5 h']);
+ await input.fill('Draw a diagram explaining the direction of motion.');await input.press('Enter');await expect(log.locator('.student-message .student-drawing')).toBeVisible();await expect(editor).toHaveCount(0);await expect(log.locator('.student-work')).toHaveCount(1);await expect(log.locator('.student-message .student-drawing .diagram-label text')).toContainText(['start','motion →','finish','v₁ = 95 km/h','d₁ = 210 km','v₂ = 65 km/h','t = 4.5 h']);
  const id=(await (await page.request.get('/api/progress')).json()).data.sessions[0].id;const saved=(await (await page.request.get(`/api/sessions/${id}`)).json()).data;expect(saved.discussion.at(-1).drawing.elements.length).toBeGreaterThan(0);expect(saved.discussion.at(-1).work).toEqual(saved.steps[0].current);expect(saved.discussion.at(-1).teacherDrawing.elements).toHaveLength(1);expect(saved.steps[0].original.drawing).toBeUndefined();await page.setViewportSize({width:1280,height:900});await page.screenshot({path:'docs/chat-drawing-classroom.png',fullPage:true});await page.setViewportSize({width:1280,height:720});
  await page.reload();await expect(log.locator('.student-message .student-drawing')).toBeVisible();await expect(log.locator('.student-work')).toHaveCount(1);await page.getByRole('button',{name:'Draw or annotate',exact:true}).click();await expect(editor.locator('.drawing-paper>text')).toContainText(['positive direction']);await editor.getByRole('button',{name:'Clear annotations'}).click();await expect(editor.getByRole('button',{name:'Undo annotation'})).toBeDisabled();await expect(editor.locator('.drawing-paper>line')).toHaveCount(1);await editor.getByRole('button',{name:'Close drawing',exact:true}).click();await expect(input).toBeFocused();
  await page.setViewportSize({width:390,height:844});await expect(input).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const box=(await composer.boundingBox())!;expect(box.y+box.height).toBeLessThanOrEqual(844);await page.screenshot({path:'docs/chat-drawing-classroom-mobile.png',fullPage:true});await page.getByRole('button',{name:'Draw or annotate',exact:true}).click();await expect(editor.getByRole('group',{name:'Diagram tools'})).toBeVisible();await expect(input).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await editor.getByRole('button',{name:'Close drawing',exact:true}).click();expect(errors).toEqual([]);
 });
+
+test('classroom never substitutes canned replies when a browser has no live connection',async({page})=>{
+ for(const student of ['bart-v1','spongebob-v1','stewie-v1']){
+  await page.goto(`/classroom?student=${student}`);const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
+  await expect(page.getByRole('link',{name:'Connect AI',exact:true})).toBeVisible();
+  await input.fill('hello');await input.press('Enter');await expect(page.getByRole('alert').filter({hasText:'Connect an OpenAI API key in Settings'})).toBeVisible();
+  await expect(input).toHaveValue('hello');await expect(page.locator('.student-message')).toHaveCount(0);
+  const progress=(await (await page.request.get('/api/progress')).json()).data;
+  const id=progress.sessions.find((s:{personaId:string})=>s.personaId===student).id;
+  const session=(await (await page.request.get(`/api/classrooms/${id}`)).json()).data;
+  expect(session.discussion).toHaveLength(0);expect(session).not.toHaveProperty('problem');
+ }
+});
+
+ test('open classroom accepts any teacher question and offers subtle, non-answer teacher-instinct cues',async({page,browser})=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/classroom?student=bart-v1');const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
+  const id=(await (await page.request.get('/api/progress')).json()).data.sessions[0].id;
+  let room=(await (await page.request.get(`/api/classrooms/${id}`)).json()).data;expect(room.discussion).toEqual([]);
+  await expect(page.locator('.classroom-title')).not.toContainText('Ch.');await expect(page.locator('.classroom-question')).toHaveCount(0);
+  await page.screenshot({path:'docs/open-classroom-empty.png',fullPage:true});
+  const stranger=await browser.newContext();expect((await stranger.request.get(`${origin}/api/classrooms/${id}`)).status()).toBe(404);await stranger.close();
+  expect((await page.request.post(`/api/classrooms/${id}/messages`,{headers:{origin:'https://untrusted.example'},data:{revision:room.revision,idempotencyKey:key(),text:'hi'}})).status()).toBe(403);
+  await page.route(`**/api/classrooms/${id}`,route=>route.fulfill({json:{data:room}}));
+  await page.route('**/api/classrooms',async route=>{if(route.request().method()==='POST')await route.fulfill({json:{data:room}});else await route.continue();});
+  await page.route(`**/api/classrooms/${id}/messages`,async route=>{const body=route.request().postDataJSON();const n=room.discussion.length;
+   const teacher=body.text,student=n===0?'I’ll divide 20 by 8. That’s 4 m/s², right? Looks close enough.':n===1?'Oh, 20 ÷ 8 is 2.5 m/s². I rushed that.':'New question, new shortcut—let me try adding the two train speeds.';
+   const turn={id:`fixture-${n}`,kind:'message',stepId:'live',teacher,student,createdAt:'2026-10-07T12:00:00Z',instinctStatus:n===2?'unavailable':'checked',instinct:n===0?{signal:'check',focus:'arithmetic'}:n===1?{signal:'clear',focus:'none'}:null};
+   room={...room,revision:room.revision+2,discussion:[...room.discussion,turn]};await route.fulfill({json:{data:{session:room}}});
+  });
+  await input.fill('A car starts from rest and reaches 20 m/s in 8 s. Find its acceleration.');await input.press('Enter');
+  const cue=page.locator('.teacher-instinct').first();await expect(cue.locator('summary')).toContainText('Teacher instinct · Check arithmetic');await cue.locator('summary').click();await expect(cue).toContainText('Have the student check the calculation.');expect(await cue.innerText()).not.toContain('2.5');await cue.locator('summary').click();
+  await page.screenshot({path:'docs/open-classroom-instinct.png',fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'docs/open-classroom-instinct-mobile.png',fullPage:true});
+  await input.fill('Check 20 divided by 8 again.');await input.press('Enter');await expect(page.getByText('Oh, 20 ÷ 8 is 2.5 m/s². I rushed that.',{exact:true})).toBeVisible();await expect(page.locator('.teacher-instinct')).toHaveCount(1);
+  await input.fill('New question: two trains approach each other, each at 155 km/h. What is their closing speed?');await input.press('Enter');await expect(page.locator('.teacher-message').last()).toContainText('New question');await expect(page.locator('.teacher-instinct').last()).toContainText('Not checked');
+  await page.reload();await expect(page.locator('.student-message')).toHaveCount(3);await expect(page.locator('.teacher-instinct')).toHaveCount(2);
+  await page.getByRole('button',{name:'Draw or annotate'}).click();await expect(page.getByRole('region',{name:'Drawing annotations'})).toBeVisible();await expect(input).toBeVisible();await page.getByRole('button',{name:'Close drawing'}).click();
+  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Problems',exact:true}).click();await page.getByRole('link',{name:/The drive home/}).click();await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Classroom',exact:true}).click();await expect(page.locator('.student-message')).toHaveCount(3);await expect(page.locator('.classroom-title')).not.toContainText('The drive home');expect(errors).toEqual([]);
+ });

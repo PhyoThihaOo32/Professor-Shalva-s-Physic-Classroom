@@ -14,6 +14,47 @@ const input=()=>({problemId:'water-in-the-bucket',personaId:'theo-v1' as const,d
 beforeEach(()=>{parse.mockReset();process.env.ALLOW_LIVE_AI='true';process.env.OPENAI_API_KEY='fake-test-no-network';process.env.OPENAI_MODEL='stubbed-model';process.env.SESSION_STARTS_PER_HOUR='10';process.env.MAX_MODEL_CALLS_PER_SESSION='20';process.env.SESSION_SPEND_LIMIT_CENTS='1000';process.env.DAILY_SPEND_LIMIT_CENTS='100000';process.env.AI_KEY_ENCRYPTION_SECRET='test-encryption-secret-with-at-least-thirty-two-characters';});
 afterAll(async()=>{if(identities.length)await db.guestIdentity.deleteMany({where:{id:{in:identities}}});await db.$disconnect();});
 describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestration, stubbed live transport',()=>{
+ it('opens an owned classroom without a preset problem or generation, restores it, and separates students',async()=>{
+  const {openRoom,getOpenRoom}=await import('../lib/open-classroom');const owner=await who(),stranger=await who();
+  const first=await openRoom({personaId:'bart-v1',idempotencyKey:crypto.randomUUID()},owner);
+  expect(first.discussion).toEqual([]);expect(parse).not.toHaveBeenCalled();
+  const stored=await db.session.findUniqueOrThrow({where:{id:first.id},include:{steps:true,errors:true}});expect(stored.problemVersionId).toBeNull();expect(stored.kind).toBe('open-classroom');expect(stored.steps).toHaveLength(0);expect(stored.errors).toHaveLength(0);
+  expect((await openRoom({personaId:'bart-v1',idempotencyKey:crypto.randomUUID()},owner)).id).toBe(first.id);
+  expect((await openRoom({personaId:'stewie-v1',idempotencyKey:crypto.randomUUID()},owner)).id).not.toBe(first.id);
+  await expect(getOpenRoom(first.id,stranger)).rejects.toThrow('not found');await expect(getSession(first.id,owner)).rejects.toThrow('not found');
+ });
+ it('saves independent teacher-instinct cues, permits arbitrary new questions, and preserves corrections and replay',async()=>{
+  const {openRoom,messageOpenRoom,getOpenRoom}=await import('../lib/open-classroom');const owner=await who(),room=await openRoom({personaId:'bart-v1',idempotencyKey:crypto.randomUUID()},owner);
+  parse.mockResolvedValueOnce({output_parsed:{message:'I’ll take 20 divided by 8. That’s 4 m/s², right?',work:null}}).mockResolvedValueOnce({output_parsed:{signal:'check',focus:'arithmetic'}});
+  const body={revision:room.revision,idempotencyKey:crypto.randomUUID(),text:'A car starts from rest and reaches 20 m/s in 8 s. What is its acceleration?'};
+  const result=await messageOpenRoom(room.id,body,owner);expect(result.session.discussion[0].instinct).toEqual({signal:'check',focus:'arithmetic'});expect(result.session.discussion[0].work).toBeUndefined();
+  const studentContext=JSON.parse(parse.mock.calls[0][0].input[2].content.split('\n').slice(1).join('\n'));expect(studentContext.problem).toBeUndefined();expect(JSON.stringify(studentContext)).not.toMatch(/ch2|95|210|expectedCorrection/);
+  expect(parse.mock.calls[1][0].input[0].content).toContain('separate physics reviewer');
+  expect(await messageOpenRoom(room.id,body,owner)).toEqual(result);expect(parse).toHaveBeenCalledTimes(2);
+  parse.mockResolvedValueOnce({output_parsed:{message:'Oh, 20 ÷ 8 is 2.5 m/s². I rushed that.',work:null}}).mockResolvedValueOnce({output_parsed:{signal:'clear',focus:'none'}});
+  const corrected=await messageOpenRoom(room.id,{revision:result.session.revision,idempotencyKey:crypto.randomUUID(),text:'Check 20 divided by 8 again.'},owner);expect(corrected.session.discussion[1].instinct?.signal).toBe('clear');expect(corrected.session.discussion[0].instinct?.signal).toBe('check');
+  parse.mockResolvedValueOnce({output_parsed:{message:'For two approaching trains, I should add the speeds—310 km/h.',work:null}}).mockResolvedValueOnce({output_parsed:{signal:'clear',focus:'none'}});
+  const next=await messageOpenRoom(room.id,{revision:corrected.session.revision,idempotencyKey:crypto.randomUUID(),text:'New question: two trains each travel at 155 km/h toward each other. What is their closing speed?'},owner);
+  expect(next.session.discussion.at(-1)?.teacher).toContain('New question');expect((await getOpenRoom(room.id,owner)).discussion).toEqual(next.session.discussion);expect(next.session).not.toHaveProperty('problem');expect(next.session).not.toHaveProperty('score');
+ });
+ it('does not fake a response without a key, and preserves replies when the optional instinct check is unavailable',async()=>{
+  const {openRoom,messageOpenRoom,getOpenRoom}=await import('../lib/open-classroom');const owner=await who(),room=await openRoom({personaId:'spongebob-v1',idempotencyKey:crypto.randomUUID()},owner);
+  delete process.env.OPENAI_API_KEY;process.env.ALLOW_LIVE_AI='false';
+  await expect(messageOpenRoom(room.id,{revision:room.revision,idempotencyKey:crypto.randomUUID(),text:'Hello'},owner)).rejects.toThrow('Settings');expect(parse).not.toHaveBeenCalled();
+  let saved=await getOpenRoom(room.id,owner);expect(saved.discussion).toHaveLength(0);
+  process.env.ALLOW_LIVE_AI='true';process.env.OPENAI_API_KEY='fake-test-no-network';
+  parse.mockResolvedValueOnce({output_parsed:{message:'I think it travels 80 m.',work:null}}).mockRejectedValueOnce(new Error('Review unavailable'));
+  saved=(await messageOpenRoom(room.id,{revision:saved.revision,idempotencyKey:crypto.randomUUID(),text:'Calculate the distance.'},owner)).session;
+  expect(saved.discussion[0].student).toContain('80 m');expect(saved.discussion[0].instinct).toBeNull();expect(saved.discussion[0].instinctStatus).toBe('unavailable');
+ });
+ it('rejects cross-owner writes, simultaneous or stale messages, and shares model quotas with reference sessions',async()=>{
+  const {openRoom,messageOpenRoom}=await import('../lib/open-classroom');const owner=await who(),stranger=await who(),room=await openRoom({personaId:'stewie-v1',idempotencyKey:crypto.randomUUID()},owner);
+  const body={revision:room.revision,idempotencyKey:crypto.randomUUID(),text:'Hi'};
+  await expect(messageOpenRoom(room.id,body,stranger)).rejects.toThrow('not found');
+  parse.mockResolvedValue({output_parsed:{message:'At last, a teacher arrives.',work:null}});const results=await Promise.allSettled([messageOpenRoom(room.id,body,owner),messageOpenRoom(room.id,{...body,idempotencyKey:crypto.randomUUID()},owner)]);expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+  await expect(messageOpenRoom(room.id,{...body,idempotencyKey:crypto.randomUUID()},owner)).rejects.toThrow('changed');
+  const stored=await db.session.findUniqueOrThrow({where:{id:room.id},include:{calls:true}});expect(stored.calls).toHaveLength(1);expect(stored.modelCalls).toBe(1);
+ });
  it('persists manual practice identity separately from classroom sessions without model calls',async()=>{
   const owner=await who(),manual=await createSession({...input(),mode:'manual'},owner),classroom=await createSession(input(),owner);
   expect(manual.mode).toBe('manual');expect(classroom.mode).toBe('classroom');expect(manual.id).not.toBe(classroom.id);expect(parse).not.toHaveBeenCalled();
@@ -37,6 +78,23 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
   expect(await mutateSession(s.id,'messages',body,identity)).toEqual(result);const refreshed=await getSession(s.id,identity);expect(refreshed.conversation).toEqual(result.session.conversation);
   const stranger=await who();await expect(mutateSession(s.id,'messages',{...body,idempotencyKey:crypto.randomUUID(),revision:refreshed.revision},stranger)).rejects.toThrow('not found');
   await expect(mutateSession(s.id,'messages',{...body,revision:refreshed.revision,idempotencyKey:crypto.randomUUID(),stepId:'s7'},identity)).rejects.toThrow('visible step');
+ });
+ it('requires a connected key for live classroom sends, then promotes the same session on its next message',async()=>{
+  const {saveConnection}=await import('../lib/ai-connection');process.env.ALLOW_LIVE_AI='false';
+  const owner=await who();let s=await createSession({...input(),personaId:'bart-v1'},owner);
+  const send=()=>({revision:s.revision,idempotencyKey:crypto.randomUUID(),stepId:'s1',text:'hello',provider:'live' as const});
+  await expect(mutateSession(s.id,'messages',send(),owner)).rejects.toThrow('Connect an OpenAI API key in Settings');
+  s=await getSession(s.id,owner);expect(s.discussion).toHaveLength(0);expect(parse).not.toHaveBeenCalled();
+  await saveConnection({apiKey:'sk-test-fixture-no-paid-calls',model:'personal-model-one'},owner);
+  parse.mockResolvedValue({output_parsed:{message:'Hey! I was hoping today’s homework had an escape hatch.',work:null}});
+  s=(await mutateSession(s.id,'messages',send(),owner)).session;
+  expect(s.provider).toBe('live');expect(s.discussion).toHaveLength(1);expect(parse.mock.calls[0][0].model).toBe('personal-model-one');
+  await saveConnection({apiKey:'sk-test-fixture-replaced-no-paid-calls',model:'personal-model-two'},owner);
+  parse.mockResolvedValue({output_parsed:{message:'Back already? Fine, I’ve still got my pencil.',work:null}});
+  s=(await mutateSession(s.id,'messages',{...send(),text:'hey'},owner)).session;
+  expect(parse.mock.calls[1][0].model).toBe('personal-model-two');
+  expect((await db.session.findUniqueOrThrow({where:{id:s.id}})).model).toBe('personal-model-two');
+  expect(s.discussion).toHaveLength(2);
  });
  it('applies live conversation call limits and preserves saved chat when a provider fails',async()=>{
   const identity=await who();let s=await createSession(input(),identity);await db.session.update({where:{id:s.id},data:{provider:'live',model:'stubbed-model'}});parse.mockRejectedValue(new Error('offline'));
@@ -113,6 +171,19 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
   const {mutationSchema}=await import('../lib/sessions');expect(mutationSchema.safeParse({...body,drawing:{...teacherDrawing,elements:[{...teacherDrawing.elements[0],x1:-1}]}}).success).toBe(false);
  });
 
+ it('persists structured worked sections and shaded graph areas across refresh and later revisions',async()=>{
+  const owner=await who();let s=await createSession({...input(),problemId:'ch2-driving-home'},owner);
+  s=(await mutateSession(s.id,'provider',{revision:s.revision,idempotencyKey:crypto.randomUUID(),provider:'live'},owner)).session;
+  const original=s.steps[0].current;
+  const work={...original,text:'Acceleration is constant.',solution:[{title:'Find acceleration',explanation:'Divide the velocity change by time.',formula:'a=(v_f-v_i)/t',substitution:'a=(20-0)/8',result:'a=2.5'}],drawing:{title:'Velocity–time graph',description:'The shaded area gives displacement.',elements:[{kind:'region' as const,points:[{x:180,y:440},{x:820,y:440},{x:820,y:120}],color:'teal' as const}]}};
+  parse.mockResolvedValue({output_parsed:{message:'Here is my worked example.',work}});
+  const body={revision:s.revision,idempotencyKey:crypto.randomUUID(),stepId:'s1',text:'Give a step-by-step worked solution.'};
+  s=(await mutateSession(s.id,'messages',body,owner)).session;
+  const refreshed=await getSession(s.id,owner);expect(refreshed.steps[0].current).toEqual(work);expect(refreshed.discussion?.at(-1)?.work).toEqual(work);expect(refreshed.steps[0].original).toEqual(original);
+  const next={...work,solution:[{...work.solution[0],title:'Check acceleration'}]};parse.mockResolvedValue({output_parsed:{message:'I checked the acceleration.',work:next}});
+  s=(await mutateSession(s.id,'messages',{...body,revision:s.revision,idempotencyKey:crypto.randomUUID(),text:'Check the acceleration.'},owner)).session;
+  expect(s.discussion?.[0].work).toEqual(work);expect(s.steps[0].history.at(-1)).toEqual(work);expect(s.steps[0].current).toEqual(next);
+ });
  it('recovers old reply calculations from exact history and avoids guessing when revisions do not match',async()=>{
   const owner=await who();let s=await createSession({...input(),problemId:'ch2-driving-home'},owner);
   s=(await mutateSession(s.id,'provider',{revision:s.revision,idempotencyKey:crypto.randomUUID(),provider:'live'},owner)).session;

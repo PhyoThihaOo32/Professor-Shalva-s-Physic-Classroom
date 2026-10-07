@@ -15,3 +15,8 @@ The user-supplied `Outer Space GIF by evite.gif` is copied unchanged to `public/
 ## Consistent palette with animated atmosphere
 
 All entry pages share the original slate/teal/lavender canvas through `--lofi-canvas`, matching the classroom, Problems, and Settings. Full-page GIFs use screen blending at 46% opacity and reduced saturation, retaining movement while their dark plum backgrounds merge into the app palette. Shared choice, hover, future-role, and selected-state tokens replace the separate burgundy/purple card treatments. Mint actions and selection outlines, peach personality labels, and the existing text/navigation colors remain consistent. The compact student-selection layout is unchanged.
+
+
+## Professor Shalva’s reminder page
+
+The Problems shelf has a single notebook icon in its top heading. It opens `/library/guide`, an independent reference page containing the nine problem-solving reminders from the supplied lecture screenshots. The page serves the user’s unchanged `space star GIF by Pi-Slices.gif` as `public/images/problem-guide-space.gif` (500 × 500), with a still PNG for reduced motion. Screen blending at 30% opacity layers the orbital lines over the shared canvas for the full page height. The steps use open numbered rows rather than separate boxes. Desktop shows two columns; phone screens show one. No guide icon is repeated on individual problem titles.

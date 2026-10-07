@@ -49,7 +49,7 @@ export async function testConnection(who:Identity){
  try{
   const client=new OpenAI({apiKey:connection.apiKey,maxRetries:0,timeout:10000});
   await client.models.retrieve(connection.model);
-  return {message:'Key and model access confirmed. Choose Live OpenAI in the classroom to start talking.'};
+  return {message:'Key and model access confirmed. Return to the classroom to start talking.'};
  }catch(error){
   const status=(error as {status?:number}).status;
   throw new AppError('AI_CONNECTION',status===401?'OpenAI did not accept this key. Replace it in Settings.':status===404?'This model is unavailable to your key. Choose another model.':status===429?'OpenAI reported a rate or usage limit. Check your API account.':'OpenAI could not verify the connection. Check the key, model access, and network.',400);

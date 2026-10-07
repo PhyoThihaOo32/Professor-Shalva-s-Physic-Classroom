@@ -64,8 +64,9 @@ model Session {
  guestId String?
  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
  guest GuestIdentity? @relation(fields: [guestId], references: [id], onDelete: Cascade)
- problemVersionId String
- problemVersion ProblemVersion @relation(fields: [problemVersionId], references: [id])
+ kind String @default("problem")
+ problemVersionId String?
+ problemVersion ProblemVersion? @relation(fields: [problemVersionId], references: [id])
  personaVersionId String
  personaVersion PersonaVersion @relation(fields: [personaVersionId], references: [id])
  rubricVersionId String
@@ -89,6 +90,7 @@ model Session {
  assessments Assessment[]
  calls ModelCall[]
  operations Operation[]
+ @@index([kind, personaVersionId, updatedAt])
  @@index([guestId, createdAt])
  @@index([userId, createdAt])
 }

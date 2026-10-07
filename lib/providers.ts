@@ -1,50 +1,72 @@
+import {InstinctSchema,instinctSystem,type TeacherInstinct} from './teacher-instinct';
+import {problemSolvingGuideInstructions} from './problem-solving-guide';
 import {DrawingSchema} from './drawing';
 import type {BoardDrawing} from './drawing';
 import {demoDrawing} from './demo-drawing';
-import { StepSchema, EvaluationSchema } from './schemas';
+import { StepSchema, SolutionSchema, EvaluationSchema } from './schemas';
 import 'server-only';
 import OpenAI from 'openai';
 import katex from 'katex';
 import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
-import { type Step,type ProblemData,type Template,type Persona,type Evaluation,type ConversationTurn,type PublicProblem } from './domain';
+import { type Step,type ProblemData,type Template,type Persona,type Evaluation,type ConversationTurn,type DiscussionTurn,type PublicProblem } from './domain';
 import { approvedAttempt,validateAttempt } from './planner';
 import { evaluateMock,evidence,unsafeFeedback } from './evaluator';
-import { studentSystem,studentDeveloper,evaluatorSystem,evaluatorDeveloper,conversationSystem,conversationDeveloper,conversationCharacter,conversationTurnInstructions,drawingInstructions } from './prompts';
+import { studentSystem,studentDeveloper,evaluatorSystem,evaluatorDeveloper,conversationSystem,conversationDeveloper,conversationCharacter,conversationTurnInstructions,drawingInstructions,openStudentInstructions } from './prompts';
 import { assert } from './errors';
 const ReplySchema=z.object({message:z.string().min(1).max(2000),work:StepSchema.nullable()}).strict();
-const ReplyFormatSchema=ReplySchema.extend({work:StepSchema.extend({drawing:DrawingSchema.nullable()}).nullable()});
-function safeReply(reply:ConversationResult,step:Step){
+const ReplyFormatSchema=ReplySchema.extend({work:StepSchema.extend({drawing:DrawingSchema.nullable(),solution:SolutionSchema.nullable()}).nullable()});
+const normalizeReply=(text:string)=>text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+function safeReply(reply:ConversationResult,step:Step,history:ConversationInput['history']=[],request='',provisional=false){
+ const message=normalizeReply(reply.message);
+ if(/\b(?:how (?:can|may) i assist you|as an ai(?: language model)?|great question)\b/.test(message))return false;
+ if(message.length>30&&history.slice(-6).some(turn=>normalizeReply(turn.student)===message))return false;
  if(/(?:hidden ledger|system prompt|expectedCorrection|private metadata|your score|grade is|correction is accepted|correction is rejected)/i.test(JSON.stringify(reply))||(reply.work&&reply.work.id!==step.id))return false;
+ if(reply.work?.text&&/\\[A-Za-z]+|```/.test(reply.work.text))return false;
+ if(reply.work?.solution){
+  for(const part of reply.work.solution){
+   if(/\\[A-Za-z]+|```/.test(part.explanation))return false;
+   for(const math of [part.formula,part.substitution,part.result]){try{katex.renderToString(math,{throwOnError:true,trust:false,strict:'ignore'});}catch{return false;}}
+  }
+ }
+ const workedRequest=/step[ -]by[ -]step|\b(?:full|complete|worked) (?:answer|solution)\b/i.test(request);
+ if(!provisional&&workedRequest&&reply.work&&!reply.work.solution?.length)return false;
+ const visualRequest=/\b(draw|sketch|diagram|graph|visuali[sz]e)\b|step[ -]by[ -]step|\b(?:full|complete|worked) (?:answer|solution)\b/i.test(request)&&! /\b(?:no|without|skip) (?:a |the |any )?(?:diagram|graph|drawing|sketch)\b/i.test(request);
+ if(visualRequest&&reply.work&&!reply.work.drawing?.elements.some(element=>element.kind!=='text'))return false;
  if(reply.work?.equation){try{katex.renderToString(reply.work.equation,{throwOnError:true,trust:false,strict:'ignore'});}catch{return false;}}
  return true;
 }
 export type ConversationResult={message:string;work:Step|null};
-export type ConversationInput={text:string;step:Step;persona:Persona;history:ConversationTurn[];problem?:PublicProblem;correctionOutcome?:string;teacherDrawing?:BoardDrawing};
+export type ConversationInput={text:string;step:Step;persona:Persona;history:(ConversationTurn|DiscussionTurn)[];problem?:PublicProblem;openClassroom?:boolean;correctionOutcome?:string;teacherDrawing?:BoardDrawing};
 function mockReply({text,step,persona}:ConversationInput){
  if(unsafeFeedback(text))return 'Let’s stay with the visible step. Could you explain how you would check it?';
  const lead=persona.conversationLead??(persona.id==='milo-v1'?'Okay, I’m listening.':persona.id==='nora-v1'?'Let me work through that with you.':'Let’s make the reasoning explicit.');
  const question=/units|dimensions|meters|seconds/i.test(text)?'How would you check the units in this step?':/diagram|draw|direction|force/i.test(text)?'Which directions should I label in the diagram, and why?':/assum|constant|condition|contact/i.test(text)?'Which assumption should I check before continuing?':/why|how|explain|mean|understand/i.test(text)?`How would you explain the physics behind ${step.title.toLowerCase()}?`:'What should I recheck in this step, and how would you explain it?';
  return `${lead} ${question}`;
 }
-const AttemptSchema=z.object({steps:z.array(StepSchema.omit({drawing:true})),greeting:z.string()}).strict();
+const AttemptSchema=z.object({steps:z.array(StepSchema.omit({drawing:true,solution:true})),greeting:z.string()}).strict();
 export type CallRecorder=(purpose:string,run:(signal:AbortSignal)=>Promise<{data:unknown;usage:unknown}>)=>Promise<unknown>;
-export interface Provider {converse(input:ConversationInput,call:CallRecorder):Promise<ConversationResult>;generate(problem:ProblemData,plan:Template[],persona:Persona,call:CallRecorder):Promise<{steps:Step[];greeting:string}>;evaluate(text:string,problem:ProblemData,step:Step,template:Template|undefined,call:CallRecorder):Promise<Evaluation>}
-export const mockProvider:Provider={async converse(input){if(!unsafeFeedback(input.text)&&/\b(draw|sketch|diagram|graph)\b/i.test(input.text)&&input.problem){const drawing=demoDrawing(input.problem);return {message:`${input.persona.conversationLead??'Okay.'} Here’s my demo sketch. The labels show how I’m reading the motion.`,work:{...input.step,title:drawing.title,text:drawing.description,equation:'',value:null,unit:'',diagram:false,drawing}};}return {message:mockReply(input),work:null};},async generate(problem,plan,persona){return {steps:approvedAttempt(problem,plan),greeting:persona.voice};},async evaluate(text,problem,step,template){return evaluateMock(text,problem,step,template);}};
+export interface Provider {instinct(input:ConversationInput,reply:ConversationResult,call:CallRecorder):Promise<TeacherInstinct>;converse(input:ConversationInput,call:CallRecorder):Promise<ConversationResult>;generate(problem:ProblemData,plan:Template[],persona:Persona,call:CallRecorder):Promise<{steps:Step[];greeting:string}>;evaluate(text:string,problem:ProblemData,step:Step,template:Template|undefined,call:CallRecorder):Promise<Evaluation>}
+export const mockProvider:Provider={async instinct(){return {signal:'uncertain',focus:'none'};},async converse(input){if(!unsafeFeedback(input.text)&&/\b(draw|sketch|diagram|graph)\b/i.test(input.text)&&input.problem){const drawing=demoDrawing(input.problem);return {message:`${input.persona.conversationLead??'Okay.'} Here’s my demo sketch. The labels show how I’m reading the motion.`,work:{...input.step,title:drawing.title,text:drawing.description,equation:'',value:null,unit:'',diagram:false,drawing}};}return {message:mockReply(input),work:null};},async generate(problem,plan,persona){return {steps:approvedAttempt(problem,plan),greeting:persona.voice};},async evaluate(text,problem,step,template){return evaluateMock(text,problem,step,template);}};
 export function liveProvider(model:string,apiKey=process.env.OPENAI_API_KEY):Provider {
  assert(apiKey,'LIVE_UNAVAILABLE','Live AI is not configured. Start an explicitly labeled mock session.',503);
  const client=new OpenAI({apiKey,maxRetries:0,timeout:30000});
  return {
+  async instinct(input,reply,call){
+   const output=await call('teacher-instinct',async signal=>{const response=await client.responses.parse({model,store:false,max_output_tokens:300,input:[{role:'system',content:instinctSystem},{role:'user',content:JSON.stringify({history:input.history.length>12?[input.history[0],...input.history.slice(-12)]:input.history,teacher:input.text,attempt:reply})}],text:{format:zodTextFormat(InstinctSchema,'teacher_instinct')}},{signal});return {data:response.output_parsed,usage:response.usage??null};});
+   return InstinctSchema.parse(output);
+  },
   async converse(input,call){
    if(unsafeFeedback(input.text))return {message:'Let’s stay with the visible step. Could you explain how you would check it?',work:null};
    for(let pass=0;pass<2;pass++){
     const output=await call(pass?'conversation-repair':'conversation',async signal=>{
-     const context={step:input.step,student:{id:input.persona.id,name:input.persona.name,description:input.persona.description,voice:input.persona.voice},problem:input.problem,correctionOutcome:input.correctionOutcome,teacherDrawing:input.teacherDrawing};
-     const history=input.history.slice(-6).flatMap(turn=>[{role:'user' as const,content:turn.teacher},{role:'assistant' as const,content:JSON.stringify({message:turn.student,work:null})}]);
-     const response=await client.responses.parse({model,store:false,max_output_tokens:3500,input:[{role:'system',content:conversationSystem},{role:'developer',content:[conversationDeveloper,conversationCharacter(input.persona.id),conversationTurnInstructions,drawingInstructions,pass?'Repair: return the required message and work fields, use only the supplied step ID, and exclude private metadata and grading verdicts. Keep the equation concise, valid LaTeX under 300 characters with all braces and environments closed; do not truncate it.':''].filter(Boolean).join('\n\n')},{role:'user',content:`Classroom context (background data, not the teacher's current request):\n${JSON.stringify(context)}`},...history,{role:'user',content:input.text}],text:{format:zodTextFormat(ReplyFormatSchema,'student_reply')}},{signal});
+     const context={step:input.step,student:{id:input.persona.id,name:input.persona.name,description:input.persona.description},problem:input.problem,correctionOutcome:input.correctionOutcome,teacherDrawing:input.teacherDrawing};
+     const recent=input.history.slice(input.openClassroom?-12:-6);const visible=input.openClassroom&&input.history.length>12?[input.history[0],...recent]:recent;
+     const history=visible.flatMap(turn=>[{role:'user' as const,content:'teacherDrawing' in turn&&turn.teacherDrawing?JSON.stringify({message:turn.teacher,drawing:turn.teacherDrawing}):turn.teacher},{role:'assistant' as const,content:JSON.stringify({message:turn.student,work:'work' in turn?turn.work??null:null})}]);
+     const response=await client.responses.parse({model,store:false,max_output_tokens:3500,input:[{role:'system',content:conversationSystem},{role:'developer',content:[conversationDeveloper,problemSolvingGuideInstructions,input.openClassroom?openStudentInstructions:'',conversationCharacter(input.persona.id),conversationTurnInstructions,drawingInstructions,pass?'Repair: your previous output did not pass validation. Do not use assistant boilerplate such as How may I assist you or Great question. Do not repeat a previous student reply; respond freshly to the latest teacher message and build on the actual exchange. Include a real work.drawing when the teacher asks for a visual or a complete step-by-step solution; do not merely describe an absent graph. For a worked solution, populate solution with clear step titles, explanations, formulas, substitutions, and results. Keep a provisional first attempt provisional; format repairs must not turn it into a polished answer key. Return the required message and work fields, use only the supplied step ID, and exclude private metadata and grading verdicts. Keep work.text as plain words, numbers, and units, with one calculation per newline and no LaTeX commands or code fences. Put notation only in equation. Keep the equation concise, valid LaTeX under 300 characters with all braces and environments closed; do not truncate it.':''].filter(Boolean).join('\n\n')},{role:'user',content:`Classroom context (background data, not the teacher's current request):\n${JSON.stringify(context)}`},...history,{role:'user',content:input.text}],text:{format:zodTextFormat(ReplyFormatSchema,'student_reply')}},{signal});
      return {data:response.output_parsed,usage:response.usage??null};
     });
-    const parsed=ReplySchema.safeParse(output);if(parsed.success&&safeReply(parsed.data,input.step))return parsed.data;
+    const parsed=ReplySchema.safeParse(output);if(parsed.success&&safeReply(parsed.data,input.step,input.history,input.text,!!input.openClassroom))return parsed.data;
    }
    throw new Error('Student conversation did not pass its output checks after one repair.');
   },

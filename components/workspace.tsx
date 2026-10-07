@@ -8,14 +8,14 @@ import {chooseStudent} from '@/lib/student-choice';
 import {findPersona,currentStudentId,type PublicSession,type Step,type DiscussionTurn} from '@/lib/domain';
 import {DrawingBoard,DrawingView} from './drawing-board';
 import type {BoardDrawing} from '@/lib/drawing';
-import {Avatar,Diagram,Equation,MathText} from './visuals';
+import {Avatar,Diagram,Equation,MathText,WorkedSolution} from './visuals';
 export function ConfirmDialog({title,children,confirmLabel,onConfirm,onClose}:{title:string;children:React.ReactNode;confirmLabel:string;onConfirm:()=>void;onClose:()=>void}){const dialog=useRef<HTMLDialogElement>(null);useEffect(()=>{dialog.current?.showModal();},[]);return <dialog ref={dialog} className="confirm-dialog" aria-labelledby="dialog-title" onCancel={onClose}><h2 id="dialog-title">{title}</h2>{children}<div className="action-row"><button className="button secondary" onClick={()=>{dialog.current?.close();onClose();}}>Cancel</button><button className="button" onClick={()=>{dialog.current?.close();onConfirm();}}>{confirmLabel}</button></div></dialog>;}
 function StepView({step}:{step:Step}){return <><h3>{step.title}</h3><p><MathText text={step.text}/></p><Equation math={step.equation} block/></>;}
 function ConversationThread({session,name,personaId}:{session:PublicSession;name:string;personaId:string}){
  return (session.discussion??session.conversation).map(raw=>{
   const turn=raw as DiscussionTurn,drawing=turn.drawing??turn.work?.drawing;
-  return <div className="conversation-turn" key={turn.id}><div className="teacher-message"><span className="speaker">You</span><p><MathText text={turn.teacher}/></p>{turn.teacherDrawing&&<DrawingView drawing={turn.teacherDrawing}/>}</div><div className="student-message"><Avatar id={personaId} size={30}/><div><span className="speaker">{name}</span><p><MathText text={turn.student}/></p>
-   {turn.work&&<div className="student-work" aria-label="Student calculation"><h3>{turn.work.title}</h3>{turn.work.text!==turn.student&&<p><MathText text={turn.work.text}/></p>}<Equation math={turn.work.equation} block/>{turn.work.diagram&&!drawing&&<Diagram kind={session.problem.diagram} caption={session.problem.diagramCaption}/>}</div>}
+  return <div className="conversation-turn" key={turn.id}><div className="teacher-message"><span className="speaker">You</span><p><MathText text={turn.teacher}/></p>{turn.teacherDrawing&&<DrawingView drawing={turn.teacherDrawing} preservePositions/>}</div><div className="student-message"><Avatar id={personaId} size={30}/><div><span className="speaker">{name}</span><p><MathText text={turn.student}/></p>
+   {turn.work&&<div className="student-work" aria-label="Student calculation"><h3>{turn.work.title}</h3><WorkedSolution work={turn.work} hideText={turn.work.text===turn.student}/>{turn.work.diagram&&!drawing&&<Diagram kind={session.problem.diagram} caption={session.problem.diagramCaption}/>}</div>}
    {drawing&&<DrawingView drawing={drawing}/>}</div></div></div>;
  });
 }
@@ -85,7 +85,7 @@ export function Workspace({id,conversationFirst=false,manual=false}:{id:string;c
    if(fresh)setSession(fresh);
   }finally{setBusy(false);}
  }
- function send(){if(text.trim())void mutate(intent==='guide'?'messages':'corrections',{stepId:active.id,text,...(annotations?{drawing:annotations}:{}),...(intent==='correct'?{action:'correct'}:{})});}
+ function send(){if(text.trim())void mutate(intent==='guide'?'messages':'corrections',{stepId:active.id,text,...(conversationFirst&&!isManual?{provider:'live'}:{}),...(annotations?{drawing:annotations}:{}),...(intent==='correct'?{action:'correct'}:{})});}
  if(!session)return <div className="page" role={error?'alert':'status'}>{error||'Opening your classroom board…'}</div>;
  if(session.state==='failed')return <div className="page centered"><h1>A fresh start?</h1><p>{session.message}</p><Link className="button" href={`/problems/${session.problem.id}?student=${session.personaId}`}>Set up a new session <ArrowRight size={17}/></Link></div>;
  if(session.state==='generating')return <div className="page centered"><h1>Your student is preparing.</h1><p>Generation is still in progress. Reload shortly; interrupted operations become recoverable failures after 35 seconds.</p><button className="button" onClick={()=>window.location.reload()}>Reload saved session</button></div>;
@@ -104,7 +104,7 @@ export function Workspace({id,conversationFirst=false,manual=false}:{id:string;c
    <header className="classroom-header">
     <Link href="/students" aria-label="Change student" title="Change student"><Avatar id={persona.id} size={36}/></Link>
     <div className="classroom-title"><h1>{name}’s classroom</h1><h2>{session.problem.chapterId==='chapter-2'?`Ch. 2 · ${session.problem.problemNumber} · `:''}{session.problem.title}</h2></div>
-    <div className="classroom-header-actions"><Link href="/settings" className="connection-status" title="AI settings">{session.provider==='live'?'Live':'Demo'}</Link><Link className="text-button" href={`/library?student=${session.personaId}`} aria-label="Problem references" title="Problem references"><ArrowLeft size={15}/>Problems</Link></div>
+    <div className="classroom-header-actions"><Link href="/settings" className="connection-status" title="AI settings">{session.provider==='live'?'Live':conversationFirst?'Connect AI':'Demo'}</Link><Link className="text-button" href={`/library?student=${session.personaId}`} aria-label="Problem references" title="Problem references"><ArrowLeft size={15}/>Problems</Link></div>
    </header>
    <details className="classroom-question"><summary>Read the question</summary><p>{session.problem.statement}</p></details>
   </>:<>

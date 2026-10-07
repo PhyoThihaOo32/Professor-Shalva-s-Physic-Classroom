@@ -1,0 +1,16 @@
+.env*
+!.env.example
+.git
+.next
+.chalklight-build-cache
+.next-cloud-cache
+.chalklight-evicted-dependencies
+node_modules
+lib/generated
+docs
+e2e
+tests
+playwright-report
+test-results
+wp2337018-lo-fi-wallpapers.png
+*.tsbuildinfo

@@ -2,7 +2,9 @@ import {DrawingSchema} from './drawing';
 // Server-owned content and model-output schemas; client modules import only types.
 import { z } from 'zod';
 import { families } from './domain';
-export const StepSchema = z.object({ id: z.string(), title: z.string().max(100), text: z.string().max(900), equation: z.string().max(300), value: z.number().nullable(), unit: z.string().max(30), diagram: z.boolean(), drawing: DrawingSchema.nullable().optional() }).strict();
+export const SolutionPartSchema=z.object({title:z.string().min(1).max(80),explanation:z.string().max(240),formula:z.string().max(220),substitution:z.string().max(220),result:z.string().max(160)}).strict();
+export const SolutionSchema=z.array(SolutionPartSchema).min(1).max(5);
+export const StepSchema = z.object({ id: z.string(), title: z.string().max(100), text: z.string().max(900), equation: z.string().max(300), value: z.number().nullable(), unit: z.string().max(30), diagram: z.boolean(), drawing: DrawingSchema.nullable().optional(), solution:SolutionSchema.nullable().optional() }).strict();
 export const CriteriaSchema = z.object({ identify: z.union([z.literal(0),z.literal(0.5),z.literal(1)]), physics: z.union([z.literal(0),z.literal(0.5),z.literal(1)]), correction: z.union([z.literal(0),z.literal(0.5),z.literal(1)]), check: z.union([z.literal(0),z.literal(0.5),z.literal(1)]), clarity: z.union([z.literal(0),z.literal(0.5),z.literal(1)]) }).strict();
 export const EvaluationSchema = z.object({ verdict: z.enum(['accepted','partial','rejected','uncertain']), criteria: CriteriaSchema, nextAction: z.enum(['revise','expand','retry','dispute']) }).strict();
 export const TemplateSchema = z.object({ id:z.string(), family:z.enum(families), severity:z.enum(['minor','major','critical']), rootStep:z.string(), dependentSteps:z.array(z.string()), expectedCorrection:z.string(), criteria:z.array(z.enum(['identify','physics','correction','check','clarity'])), wrong:z.array(StepSchema), terms:z.array(z.string()), nudge:z.string(), cue:z.string(), guidance:z.string() }).strict();

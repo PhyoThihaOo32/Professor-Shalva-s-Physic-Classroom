@@ -1,12 +1,24 @@
 'use client';
 import katex from 'katex';
+import {mathParts,plainMath,explanationLines,equationLines,equationFragments} from '@/lib/math-text';
 import Image from 'next/image';
 import type {CSSProperties} from 'react';
 import {findPersona} from '@/lib/domain';
-import type {ProblemData} from '@/lib/domain';
-export function Equation({math,block=false}:{math:string;block?:boolean}){if(!math)return null;return <span className={block?'equation block':'equation'} aria-label={math} dangerouslySetInnerHTML={{__html:katex.renderToString(math,{throwOnError:false,trust:false,strict:'warn',output:'htmlAndMathml',displayMode:block})}}/>;}
-export function MathText({text}:{text:string}){
- return text.split(/(\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\))/g).map((part,index)=>part.startsWith('\\[')||part.startsWith('\\(')?<Equation key={index} math={part.slice(2,-2)} block={part.startsWith('\\[')}/>:part);
+import type {ProblemData,Step} from '@/lib/domain';
+export function Equation({math,block=false}:{math:string;block?:boolean}){
+ if(!math)return null;
+ const lines=block?equationLines(math):[math];
+ return <span className={block?'equation block':'equation'}>{lines.map((line,index)=><span className="equation-line" key={index}>{equationFragments(line).map((fragment,i)=>{
+  try{const html=katex.renderToString(fragment.replace(/\\_/g,'_'),{throwOnError:true,trust:false,strict:'ignore',output:'htmlAndMathml',displayMode:block});return <span className="equation-fragment" key={i} aria-label={plainMath(fragment)} dangerouslySetInnerHTML={{__html:html}}/>;}
+  catch{return <span key={i} className="equation-readable">{plainMath(fragment)}</span>;}
+ })}</span>)}</span>;
+
+}
+export function MathText({text}:{text:string}){return mathParts(text).map((part,index)=>part.kind==='math'?<Equation key={index} math={part.value} block={part.block}/>:part.value);}
+export function WorkExplanation({text}:{text:string}){return <div className="work-explanation">{explanationLines(text).map((line,index)=><p key={index}><MathText text={line}/></p>)}</div>;}
+export function WorkedSolution({work,hideText=false}:{work:Step;hideText?:boolean}){
+ if(!work.solution?.length)return <>{!hideText&&<WorkExplanation text={work.text}/>}<Equation math={work.equation} block/></>;
+ return <ol className="worked-solution">{work.solution.map((part,index)=><li key={index}><h4><span>{index+1}.</span> {part.title}</h4>{part.explanation&&<p><MathText text={part.explanation}/></p>}{part.formula&&<Equation math={part.formula} block/>}{part.substitution&&<Equation math={part.substitution} block/>}{part.result&&<div className="solution-result"><Equation math={part.result} block/></div>}</li>)}</ol>;
 }
 export function Avatar({id,size=64}:{id:string;size?:number}){
  const persona=findPersona(id);
