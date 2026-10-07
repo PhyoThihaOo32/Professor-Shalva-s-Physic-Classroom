@@ -96,7 +96,7 @@ test('a browser resume rejection is handled and Play can retry', async ({page}) 
   expect(errors).toEqual([]);
 });
 
-test('one cafe radio survives navigation, stops local audio, and falls back offline', async ({page,context}) => {
+test('one cafe radio stays embedded in the sidebar, survives navigation and folding, and falls back offline', async ({page,context}) => {
   let loads=0;
   // Deterministic transport for our lifecycle checks; the real provider is checked separately.
   await page.route('https://www.lofi.cafe/', route => {loads++; return route.fulfill({contentType:'text/html',body:'<button>Radio fixture</button>'});});
@@ -104,21 +104,37 @@ test('one cafe radio survives navigation, stops local audio, and falls back offl
   const player=page.locator('.settings-audio'),frame=page.getByTitle('lofi.cafe radio',{exact:true});
   await expect(player.getByLabel('Music source')).toHaveValue('cafe');await expect(frame).toHaveCount(0);
   await player.getByRole('button',{name:'Open radio',exact:true}).click();await expect(frame).toBeVisible();
+  await expect(page.locator('.sidebar-music').getByTitle('lofi.cafe radio',{exact:true})).toHaveCount(1);
+  expect(await page.locator('.cafe-radio').evaluate(e=>getComputedStyle(e).position)).not.toBe('fixed');
+  await expect(page.getByRole('button',{name:'Close radio',exact:true})).toHaveCount(0);
+  const dock=await page.locator('.cafe-radio').boundingBox(),sidebar=await page.locator('.sidebar').boundingBox();
+  expect(dock!.x).toBeGreaterThanOrEqual(sidebar!.x);expect(dock!.x+dock!.width).toBeLessThanOrEqual(sidebar!.x+sidebar!.width);
+  expect(dock!.height).toBeLessThanOrEqual(150);
   await expect.poll(()=>loads).toBe(1);
   await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Problems',exact:true}).click();
   await expect(frame).toBeVisible();expect(loads).toBe(1);
-  await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();await expect(frame).toBeVisible();
+  await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();await expect(frame).toBeHidden();await expect(frame).toHaveCount(1);expect(loads).toBe(1);
+  await page.getByRole('button',{name:'Expand sidebar',exact:true}).click();await expect(frame).toBeVisible();expect(loads).toBe(1);
+  await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();
   await page.locator('.sidebar').getByLabel('Music source').selectOption('offline');await expect(frame).toHaveCount(0);
   await page.locator('.sidebar').getByRole('button',{name:'Play audio',exact:true}).click();await expect.poll(()=>outputPeak(page)).toBeGreaterThan(.0001);
   await page.locator('.sidebar').getByLabel('Music source').selectOption('cafe');
   await expect.poll(()=>page.evaluate(()=>(window as unknown as {audioProbes:AudioContext[]}).audioProbes.at(-1)?.state)).toBe('suspended');await expect(frame).toHaveCount(0);
   await page.locator('.sidebar').getByRole('button',{name:'Open radio',exact:true}).click();await expect(frame).toBeVisible();
+  await expect(page.getByRole('button',{name:'Fold sidebar',exact:true})).toBeVisible();
   await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const phoneDock=await page.locator('.cafe-radio').boundingBox(),phoneSidebar=await page.locator('.sidebar').boundingBox();
+  expect(phoneDock!.y+phoneDock!.height).toBeLessThanOrEqual(phoneSidebar!.y+phoneSidebar!.height);expect(phoneDock!.height).toBeLessThanOrEqual(130);
   await context.setOffline(true);await expect(frame).toHaveCount(0);
   await expect(page.locator('.topbar-audio').getByLabel('Music source')).toHaveValue('offline');
   await page.locator('.topbar-audio').getByRole('button',{name:'Play audio',exact:true}).click();await expect.poll(()=>outputPeak(page)).toBeGreaterThan(.0001);
   await context.setOffline(false);await expect(page.locator('.topbar-audio').getByLabel('Music source')).toHaveValue('offline');
   await page.locator('.topbar-audio').getByRole('button',{name:'Pause audio',exact:true}).click();
   await page.locator('.topbar-audio').getByLabel('Music source').selectOption('cafe');await page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true}).click();
-  await page.getByRole('button',{name:'Close radio',exact:true}).click();await expect(frame).toHaveCount(0);await expect(page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true})).toBeFocused();
+  await page.locator('.sidebar-music').getByRole('button',{name:'Stop radio',exact:true}).click();await expect(frame).toHaveCount(0);
+  await expect(page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true})).toBeFocused();
+  await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();
+  await page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true}).click();await expect(frame).toBeVisible();
+  await expect(page.getByRole('button',{name:'Fold sidebar',exact:true})).toBeVisible();
+  await page.locator('.topbar-audio').getByRole('button',{name:'Stop radio',exact:true}).click();await expect(frame).toHaveCount(0);
 });

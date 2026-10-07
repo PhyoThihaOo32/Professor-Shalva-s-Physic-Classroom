@@ -39,6 +39,9 @@ export async function toggleCafe() {
   publish({pending: true});
   try {
     if (getAudioState().playing) await toggleAudio();
-    if (state.online) publish({source: 'cafe', open: true});
+    if (state.online) {
+      publish({source: 'cafe', open: true});
+      window.dispatchEvent(new Event('chalklight-radio-opened'));
+    }
   } finally {publish({pending: false});}
 }
