@@ -809,6 +809,8 @@ footer{gap:16px;flex-wrap:wrap}
 .sidebar-music .audio{padding-bottom:12px}
 .cafe-radio{width:100%;height:144px;overflow:hidden;border-radius:8px;background:#373c54;margin-bottom:16px}
 .cafe-radio iframe{display:block;width:100%;height:100%;border:0;background:#242537}
+/* Keep the native transport, trimming the crowded social header in the sidebar. */
+.sidebar-music .cafe-radio iframe{height:calc(100% + 36px);margin-top:-36px}
 .sidebar-folded .sidebar .cafe-radio{display:none}
 .sidebar{overflow-y:auto}
 .sidebar .brand,.sidebar nav,.sidebar-bottom{flex-shrink:0}
