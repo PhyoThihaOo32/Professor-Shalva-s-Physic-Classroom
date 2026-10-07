@@ -1,0 +1,199 @@
+generator client {
+ provider = "prisma-client"
+ output = "../lib/generated/prisma"
+}
+datasource db {
+ provider = "postgresql"
+}
+model User {
+ id String @id
+ email String @unique
+ sessions Session[]
+ aiConnection AiConnection?
+}
+model GuestIdentity {
+ id String @id
+ createdAt DateTime @default(now())
+ lastSeenAt DateTime @default(now())
+ sessions Session[]
+ aiConnection AiConnection?
+}
+model Chapter {
+ id String @id
+ title String
+ source String
+ problems Problem[]
+}
+model Problem {
+ id String @id @default(cuid())
+ chapterId String
+ chapter Chapter @relation(fields: [chapterId], references: [id])
+ versions ProblemVersion[]
+}
+model ProblemVersion {
+ id String @id @default(cuid())
+ problemId String
+ problem Problem @relation(fields: [problemId], references: [id])
+ version Int
+ status String @default("draft")
+ data Json
+ reviewedAt DateTime?
+ reviewedBy String?
+ createdAt DateTime @default(now())
+ sessions Session[]
+ @@unique([problemId, version])
+}
+model PersonaVersion {
+ id String @id
+ data Json
+ sessions Session[]
+}
+model RubricVersion {
+ id String @id
+ data Json
+ sessions Session[]
+}
+model ErrorTemplate {
+ id String @id
+ data Json
+ instances ErrorInstance[]
+}
+model Session {
+ id String @id @default(cuid())
+ userId String?
+ guestId String?
+ user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+ guest GuestIdentity? @relation(fields: [guestId], references: [id], onDelete: Cascade)
+ problemVersionId String
+ problemVersion ProblemVersion @relation(fields: [problemVersionId], references: [id])
+ personaVersionId String
+ personaVersion PersonaVersion @relation(fields: [personaVersionId], references: [id])
+ rubricVersionId String
+ rubricVersion RubricVersion @relation(fields: [rubricVersionId], references: [id])
+ promptVersion String
+ provider String
+ model String?
+ difficulty String
+ state String @default("created")
+ revision Int @default(0)
+ visibleCount Int @default(1)
+ modelCalls Int @default(0)
+ reservedCostCents Int @default(0)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ steps AttemptStep[]
+ errors ErrorInstance[]
+ events SessionEvent[]
+ corrections Correction[]
+ hints HintUsage[]
+ assessments Assessment[]
+ calls ModelCall[]
+ operations Operation[]
+ @@index([guestId, createdAt])
+ @@index([userId, createdAt])
+}
+model AttemptStep {
+ id String @id @default(cuid())
+ sessionId String
+ session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+ stableId String
+ position Int
+ original Json
+ current Json
+ history Json
+ valid Boolean @default(false)
+ @@unique([sessionId, stableId])
+}
+model ErrorInstance {
+ id String @id @default(cuid())
+ sessionId String
+ session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+ templateId String
+ template ErrorTemplate @relation(fields: [templateId], references: [id])
+ rootStep String
+ family String
+ severity String
+ dependentSteps Json
+ expectedCorrection String
+ criteria Json
+ resolved Boolean @default(false)
+ @@unique([sessionId, rootStep])
+}
+model SessionEvent {
+ id String @id @default(cuid())
+ sessionId String
+ session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+ type String
+ data Json
+ createdAt DateTime @default(now())
+}
+model Correction {
+ id String @id @default(cuid())
+ sessionId String
+ session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+ stepId String
+ text String
+ verdict String
+ feedback Json
+ createdAt DateTime @default(now())
+}
+model HintUsage {
+ id String @id @default(cuid())
+ sessionId String
+ session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+ stepId String
+ level Int
+ createdAt DateTime @default(now())
+}
+model Assessment {
+ id String @id @default(cuid())
+ sessionId String
+ session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+ rootStep String
+ score Float
+ criteria Json
+ provisional Boolean @default(false)
+ disputed Boolean @default(false)
+ disputeReason String?
+ @@unique([sessionId, rootStep])
+}
+model ModelCall {
+ id String @id @default(cuid())
+ sessionId String
+ session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+ purpose String
+ model String
+ status String
+ reservedCostCents Int
+ usage Json?
+ createdAt DateTime @default(now())
+}
+model Operation {
+ id String @id @default(cuid())
+ sessionId String
+ session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+ key String
+ kind String
+ requestHash String
+ baseRevision Int
+ status String
+ result Json?
+ createdAt DateTime @default(now())
+ @@unique([sessionId, key])
+}
+model Quota {
+ key String @id
+ count Int @default(0)
+ expiresAt DateTime
+}
+
+model AiConnection {
+ id String @id @default(cuid())
+ userId String? @unique
+ guestId String? @unique
+ user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+ guest GuestIdentity? @relation(fields: [guestId], references: [id], onDelete: Cascade)
+ encryptedKey String
+ model String
+ updatedAt DateTime @updatedAt
+}

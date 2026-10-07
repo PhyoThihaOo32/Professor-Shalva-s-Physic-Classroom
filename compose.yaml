@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:18.3
+    environment:
+      POSTGRES_USER: chalklight
+      POSTGRES_PASSWORD: chalklight_local
+      POSTGRES_DB: chalklight
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - chalklight_postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chalklight -d chalklight"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  chalklight_postgres:

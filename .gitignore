@@ -1,0 +1,26 @@
+node_modules
+.next/
+.env
+.env.local
+.env.*.local
+lib/generated/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.chalklight-evicted-dependencies/
+
+.next-cloud-cache
+.chalklight-build-cache
+.next */
+
+# Personal configuration, local databases, and machine-only artifacts
+.env*
+!.env.example
+.DS_Store
+node_modules */
+*.pem
+*.key
+*.sqlite
+*.sqlite3
+*.db
+*.log

@@ -1,0 +1,343 @@
+{
+  "timestamp": "2026-10-06T21:03:51.846Z",
+  "provider": "mock",
+  "model": null,
+  "paidCalls": 0,
+  "attempts": {
+    "total": 18,
+    "passed": 18,
+    "cases": [
+      {
+        "problem": "around-the-bend",
+        "persona": "milo-v1",
+        "difficulty": "guided",
+        "pass": true
+      },
+      {
+        "problem": "around-the-bend",
+        "persona": "nora-v1",
+        "difficulty": "standard",
+        "pass": true
+      },
+      {
+        "problem": "around-the-bend",
+        "persona": "theo-v1",
+        "difficulty": "challenge",
+        "pass": true
+      },
+      {
+        "problem": "flat-road",
+        "persona": "milo-v1",
+        "difficulty": "guided",
+        "pass": true
+      },
+      {
+        "problem": "flat-road",
+        "persona": "nora-v1",
+        "difficulty": "standard",
+        "pass": true
+      },
+      {
+        "problem": "flat-road",
+        "persona": "theo-v1",
+        "difficulty": "challenge",
+        "pass": true
+      },
+      {
+        "problem": "water-in-the-bucket",
+        "persona": "milo-v1",
+        "difficulty": "guided",
+        "pass": true
+      },
+      {
+        "problem": "water-in-the-bucket",
+        "persona": "nora-v1",
+        "difficulty": "standard",
+        "pass": true
+      },
+      {
+        "problem": "water-in-the-bucket",
+        "persona": "theo-v1",
+        "difficulty": "challenge",
+        "pass": true
+      },
+      {
+        "problem": "bottom-of-the-loop",
+        "persona": "milo-v1",
+        "difficulty": "guided",
+        "pass": true
+      },
+      {
+        "problem": "bottom-of-the-loop",
+        "persona": "nora-v1",
+        "difficulty": "standard",
+        "pass": true
+      },
+      {
+        "problem": "bottom-of-the-loop",
+        "persona": "theo-v1",
+        "difficulty": "challenge",
+        "pass": true
+      },
+      {
+        "problem": "conical-pendulum",
+        "persona": "milo-v1",
+        "difficulty": "guided",
+        "pass": true
+      },
+      {
+        "problem": "conical-pendulum",
+        "persona": "nora-v1",
+        "difficulty": "standard",
+        "pass": true
+      },
+      {
+        "problem": "conical-pendulum",
+        "persona": "theo-v1",
+        "difficulty": "challenge",
+        "pass": true
+      },
+      {
+        "problem": "rpm-to-acceleration",
+        "persona": "milo-v1",
+        "difficulty": "guided",
+        "pass": true
+      },
+      {
+        "problem": "rpm-to-acceleration",
+        "persona": "nora-v1",
+        "difficulty": "standard",
+        "pass": true
+      },
+      {
+        "problem": "rpm-to-acceleration",
+        "persona": "theo-v1",
+        "difficulty": "challenge",
+        "pass": true
+      }
+    ]
+  },
+  "corrections": {
+    "total": 36,
+    "passed": 36,
+    "cases": [
+      {
+        "id": "around-the-bend-valid",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      },
+      {
+        "id": "around-the-bend-partial",
+        "expected": "partial",
+        "actual": "partial",
+        "pass": true
+      },
+      {
+        "id": "around-the-bend-incorrect",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "around-the-bend-alternate-uncertain",
+        "expected": "uncertain",
+        "actual": "uncertain",
+        "pass": true
+      },
+      {
+        "id": "around-the-bend-injection",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "flat-road-valid",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      },
+      {
+        "id": "flat-road-partial",
+        "expected": "partial",
+        "actual": "partial",
+        "pass": true
+      },
+      {
+        "id": "flat-road-incorrect",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "flat-road-alternate-uncertain",
+        "expected": "uncertain",
+        "actual": "uncertain",
+        "pass": true
+      },
+      {
+        "id": "flat-road-injection",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "water-in-the-bucket-valid",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      },
+      {
+        "id": "water-in-the-bucket-partial",
+        "expected": "partial",
+        "actual": "partial",
+        "pass": true
+      },
+      {
+        "id": "water-in-the-bucket-incorrect",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "water-in-the-bucket-alternate-uncertain",
+        "expected": "uncertain",
+        "actual": "uncertain",
+        "pass": true
+      },
+      {
+        "id": "water-in-the-bucket-injection",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "bottom-of-the-loop-valid",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      },
+      {
+        "id": "bottom-of-the-loop-partial",
+        "expected": "partial",
+        "actual": "partial",
+        "pass": true
+      },
+      {
+        "id": "bottom-of-the-loop-incorrect",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "bottom-of-the-loop-alternate-uncertain",
+        "expected": "uncertain",
+        "actual": "uncertain",
+        "pass": true
+      },
+      {
+        "id": "bottom-of-the-loop-injection",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "conical-pendulum-valid",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      },
+      {
+        "id": "conical-pendulum-partial",
+        "expected": "partial",
+        "actual": "partial",
+        "pass": true
+      },
+      {
+        "id": "conical-pendulum-incorrect",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "conical-pendulum-alternate-uncertain",
+        "expected": "uncertain",
+        "actual": "uncertain",
+        "pass": true
+      },
+      {
+        "id": "conical-pendulum-injection",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "rpm-to-acceleration-valid",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      },
+      {
+        "id": "rpm-to-acceleration-partial",
+        "expected": "partial",
+        "actual": "partial",
+        "pass": true
+      },
+      {
+        "id": "rpm-to-acceleration-incorrect",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "rpm-to-acceleration-alternate-uncertain",
+        "expected": "uncertain",
+        "actual": "uncertain",
+        "pass": true
+      },
+      {
+        "id": "rpm-to-acceleration-injection",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "bucket-outward-positive",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      },
+      {
+        "id": "bucket-negative-normal",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "bucket-extra-force",
+        "expected": "rejected",
+        "actual": "rejected",
+        "pass": true
+      },
+      {
+        "id": "bucket-arithmetic-correct",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      },
+      {
+        "id": "bucket-arithmetic-partial",
+        "expected": "partial",
+        "actual": "partial",
+        "pass": true
+      },
+      {
+        "id": "bucket-units-correct",
+        "expected": "accepted",
+        "actual": "accepted",
+        "pass": true
+      }
+    ]
+  },
+  "usage": []
+}

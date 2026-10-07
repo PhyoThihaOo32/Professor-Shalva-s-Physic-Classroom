@@ -1,0 +1,4 @@
+'use client';
+export async function api<T>(path:string,options?:{method?:string;body?:unknown}):Promise<T>{const res=await fetch(`/api/${path}`,{method:options?.method??'GET',cache:'no-store',headers:options?.body?{'Content-Type':'application/json'}:{},body:options?.body?JSON.stringify(options.body):undefined});const result=await res.json();if(!res.ok)throw new Error(`${result.error?.message??'Request failed.'} (request ${result.requestId})`);return result.data as T;}
+export function key(){return crypto.randomUUID();}
+export type Progress={sessions:{mode?:'manual'|'classroom';id:string;title:string;chapterId?:string;state:string;provider:string;difficulty:string;personaId:string;updatedAt:string;corrections:number;hints:number}[];stats:{sessions:number;finished:number;corrections:number;hints:number};families:{family:string;resolved:boolean;score:number;provisional:boolean}[]};
