@@ -797,3 +797,24 @@ footer{gap:16px;flex-wrap:wrap}
 .teacher-instinct summary:focus-visible {outline:2px solid var(--lofi-mint);outline-offset:3px;border-radius:4px;}
 .teacher-instinct p {font-size:12px!important;margin:4px 0 8px;color:var(--muted);}
 .teacher-instinct.unavailable {color:var(--muted);}
+
+/* One small station window; local music remains available without a network. */
+.audio-row{flex-wrap:wrap;gap:8px}
+.audio-row input{flex:1;min-width:45px;width:auto}
+.audio-row .music-source{width:auto;min-height:30px;max-width:100%;padding:3px 7px;border:0;background:transparent;color:var(--lofi-lavender);font-size:11px;line-height:1.5;color-scheme:dark;margin-left:auto;cursor:pointer}
+.audio-row .music-source option{background:#434766;color:#f1ecfa}
+.audio-compact .audio-row{flex-wrap:nowrap}
+.audio-compact .music-source{font-size:10px;padding:2px;width:62px}
+.sidebar-folded .sidebar .audio-row .music-source{width:100%;font-size:9px;padding:2px 0;margin-left:0}
+.cafe-radio{position:fixed;right:18px;bottom:18px;z-index:45;width:320px;max-width:calc(100vw - 28px);overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#414761;box-shadow:0 12px 36px #202c4255}
+.cafe-radio header{display:flex;align-items:center;justify-content:space-between;height:34px;padding:0 9px 0 13px}
+.cafe-radio header a{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--lofi-lavender)}
+.cafe-radio header button{display:flex;align-items:center;justify-content:center;width:28px;height:28px;color:var(--ink);border-radius:7px}
+.cafe-radio header button:hover{background:#d0bff61a}
+.cafe-radio iframe{display:block;width:100%;height:220px;border:0;background:#242537}
+@media(max-width:600px){.cafe-radio{right:12px;bottom:88px;width:300px}.audio-compact .audio-row button{width:27px;min-width:27px}.audio-compact .music-source{width:55px}.topbar-actions{gap:8px}.topbar .mode-badge{gap:6px}}
+
+.audio-radio .music-source{margin-left:0}
+.settings-audio .audio{border:0;background:none;padding:0}
+.settings-audio .audio-label{display:flex}
+.settings-audio .audio-row{flex-wrap:nowrap}

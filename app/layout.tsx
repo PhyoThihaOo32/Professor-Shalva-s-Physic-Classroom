@@ -4,5 +4,6 @@ import './globals.css';
 import './cosmos.css';
 import {Shell} from '@/components/shell';
 import {appName} from '@/lib/brand';
+import {CafeRadio} from '@/components/cafe-radio';
 export const metadata:Metadata={title:`${appName} — Learn by teaching`,description:'A quiet classroom for learning physics by teaching an original simulated student.',icons:{icon:'/favicon.svg'}};
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning><body><Shell>{children}</Shell></body></html>;}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning><body><Shell>{children}</Shell><CafeRadio/></body></html>;}

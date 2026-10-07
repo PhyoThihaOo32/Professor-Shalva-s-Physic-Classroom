@@ -35,6 +35,7 @@ async function outputPeak(page: import('@playwright/test').Page) {
 test('original lo-fi music produces audio and shared controls pause, mute, persist volume, and survive navigation', async ({page}) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/settings');
+  await page.locator('.settings-audio').getByLabel('Music source').selectOption('offline');
   const player = page.locator('.settings-audio');
   await expect(player.getByRole('button', {name: 'Play audio', exact: true})).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as {audioProbes: unknown[]}).audioProbes.length)).toBe(0);
@@ -65,7 +66,8 @@ test('original lo-fi music produces audio and shared controls pause, mute, persi
   await page.locator('.topbar-audio').getByRole('button', {name: 'Pause audio', exact: true}).click();
   await expect(page.locator('.topbar-audio').getByRole('button', {name: 'Play audio', exact: true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.goto('/settings'); await page.reload();
+  await page.goto('/settings');
+  await expect(player.getByLabel('Music source')).toHaveValue('offline'); await page.reload();
   await expect(player.getByLabel('Audio volume')).toHaveValue('0.18');
   await expect(player.getByRole('button', {name: 'Play audio', exact: true})).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as {audioProbes: unknown[]}).audioProbes.length)).toBe(0);
@@ -81,7 +83,8 @@ test('a browser resume rejection is handled and Play can retry', async ({page}) 
     AudioContext.prototype.resume = function () {return ++calls === 1 ? Promise.reject(new Error('Device unavailable')) : original.call(this);};
   });
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/settings'); const player = page.locator('.settings-audio');
+  await page.goto('/settings');
+  await page.locator('.settings-audio').getByLabel('Music source').selectOption('offline'); const player = page.locator('.settings-audio');
   await player.getByRole('button', {name: 'Play audio', exact: true}).click();
   await expect(player.getByRole('status')).toContainText('Audio is unavailable');
   await expect(player.getByRole('button', {name: 'Play audio', exact: true})).toBeEnabled();
@@ -91,4 +94,31 @@ test('a browser resume rejection is handled and Play can retry', async ({page}) 
   await expect(player.getByRole('status')).toHaveCount(0);
   await player.getByRole('button', {name: 'Pause audio', exact: true}).click();
   expect(errors).toEqual([]);
+});
+
+test('one cafe radio survives navigation, stops local audio, and falls back offline', async ({page,context}) => {
+  let loads=0;
+  // Deterministic transport for our lifecycle checks; the real provider is checked separately.
+  await page.route('https://www.lofi.cafe/', route => {loads++; return route.fulfill({contentType:'text/html',body:'<button>Radio fixture</button>'});});
+  await page.goto('/settings');
+  const player=page.locator('.settings-audio'),frame=page.getByTitle('lofi.cafe radio',{exact:true});
+  await expect(player.getByLabel('Music source')).toHaveValue('cafe');await expect(frame).toHaveCount(0);
+  await player.getByRole('button',{name:'Open radio',exact:true}).click();await expect(frame).toBeVisible();
+  await expect.poll(()=>loads).toBe(1);
+  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Problems',exact:true}).click();
+  await expect(frame).toBeVisible();expect(loads).toBe(1);
+  await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();await expect(frame).toBeVisible();
+  await page.locator('.sidebar').getByLabel('Music source').selectOption('offline');await expect(frame).toHaveCount(0);
+  await page.locator('.sidebar').getByRole('button',{name:'Play audio',exact:true}).click();await expect.poll(()=>outputPeak(page)).toBeGreaterThan(.0001);
+  await page.locator('.sidebar').getByLabel('Music source').selectOption('cafe');
+  await expect.poll(()=>page.evaluate(()=>(window as unknown as {audioProbes:AudioContext[]}).audioProbes.at(-1)?.state)).toBe('suspended');await expect(frame).toHaveCount(0);
+  await page.locator('.sidebar').getByRole('button',{name:'Open radio',exact:true}).click();await expect(frame).toBeVisible();
+  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await context.setOffline(true);await expect(frame).toHaveCount(0);
+  await expect(page.locator('.topbar-audio').getByLabel('Music source')).toHaveValue('offline');
+  await page.locator('.topbar-audio').getByRole('button',{name:'Play audio',exact:true}).click();await expect.poll(()=>outputPeak(page)).toBeGreaterThan(.0001);
+  await context.setOffline(false);await expect(page.locator('.topbar-audio').getByLabel('Music source')).toHaveValue('offline');
+  await page.locator('.topbar-audio').getByRole('button',{name:'Pause audio',exact:true}).click();
+  await page.locator('.topbar-audio').getByLabel('Music source').selectOption('cafe');await page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true}).click();
+  await page.getByRole('button',{name:'Close radio',exact:true}).click();await expect(frame).toHaveCount(0);await expect(page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true})).toBeFocused();
 });
