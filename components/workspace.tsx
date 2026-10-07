@@ -104,7 +104,7 @@ export function Workspace({id,conversationFirst=false,manual=false}:{id:string;c
    <header className="classroom-header">
     <Link href="/students" aria-label="Change student" title="Change student"><Avatar id={persona.id} size={36}/></Link>
     <div className="classroom-title"><h1>{name}’s classroom</h1><h2>{session.problem.chapterId==='chapter-2'?`Ch. 2 · ${session.problem.problemNumber} · `:''}{session.problem.title}</h2></div>
-    <div className="classroom-header-actions"><Link href="/settings" className="connection-status" title="AI settings">{session.provider==='live'?'Live':conversationFirst?'Connect AI':'Demo'}</Link><Link className="text-button" href={`/library?student=${session.personaId}`} aria-label="Problem references" title="Problem references"><ArrowLeft size={15}/>Problems</Link></div>
+    <div className="classroom-header-actions"><span className="connection-status" title="AI connection status">{session.provider==='live'?'Live':conversationFirst?'AI not connected':'Demo'}</span><Link className="text-button" href={`/library?student=${session.personaId}`} aria-label="Problem references" title="Problem references"><ArrowLeft size={15}/>Problems</Link></div>
    </header>
    <details className="classroom-question"><summary>Read the question</summary><p>{session.problem.statement}</p></details>
   </>:<>

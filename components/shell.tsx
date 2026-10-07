@@ -6,7 +6,7 @@ import {useStudentChoice} from '@/lib/student-choice';
 import {appName} from '@/lib/brand';
 import {Brand} from './brand';
 import {AudioControls} from './audio-controls';
-import {useEffect,useSyncExternalStore} from 'react';
+import {useSyncExternalStore} from 'react';
 import {BookOpen,Settings,MessageCircle,GraduationCap,PanelLeftClose,PanelLeftOpen} from 'lucide-react';
 const sidebarPreference='chalklight-sidebar-folded';
 let foldedFallback=false;
@@ -23,7 +23,6 @@ export function Shell({children}:{children:React.ReactNode}){
  const path=usePathname(),studentId=useStudentChoice();
  const folded=useSyncExternalStore(subscribeSidebar,readSidebar,expandedSidebar);
  const location=path.startsWith('/library')||path.startsWith('/problems')?'problems':path==='/settings'?'settings':'classroom';
- useEffect(()=>{document.documentElement.dataset.contrast=localStorage.getItem('chalklight-contrast')??'normal';},[]);
  const onboarding=['/','/roles','/students'].includes(path);
  const entryAnimation=path==='/'?'space':path==='/roles'?'astronaut':path==='/students'?'students':null;
  const entryStep=path==='/roles'?2:path==='/students'?3:1;

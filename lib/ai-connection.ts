@@ -41,7 +41,7 @@ export async function connectionStatus(who:Identity){
 export async function resolveAi(who:Identity){
  const saved=await db.aiConnection.findUnique({where:where(who)});
  if(saved)return {apiKey:decrypt(saved.encryptedKey,ownerKey(who)),model:saved.model};
- assert(process.env.ALLOW_LIVE_AI==='true'&&process.env.OPENAI_API_KEY&&process.env.OPENAI_MODEL,'LIVE_UNAVAILABLE','Connect an OpenAI API key in Settings to use live responses.',503);
+ assert(process.env.ALLOW_LIVE_AI==='true'&&process.env.OPENAI_API_KEY&&process.env.OPENAI_MODEL,'LIVE_UNAVAILABLE','Live AI is not connected for this browser.',503);
  return {apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL};
 }
 export async function testConnection(who:Identity){

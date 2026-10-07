@@ -40,7 +40,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
  it('does not fake a response without a key, and preserves replies when the optional instinct check is unavailable',async()=>{
   const {openRoom,messageOpenRoom,getOpenRoom}=await import('../lib/open-classroom');const owner=await who(),room=await openRoom({personaId:'spongebob-v1',idempotencyKey:crypto.randomUUID()},owner);
   delete process.env.OPENAI_API_KEY;process.env.ALLOW_LIVE_AI='false';
-  await expect(messageOpenRoom(room.id,{revision:room.revision,idempotencyKey:crypto.randomUUID(),text:'Hello'},owner)).rejects.toThrow('Settings');expect(parse).not.toHaveBeenCalled();
+  await expect(messageOpenRoom(room.id,{revision:room.revision,idempotencyKey:crypto.randomUUID(),text:'Hello'},owner)).rejects.toThrow('Live AI is not connected');expect(parse).not.toHaveBeenCalled();
   let saved=await getOpenRoom(room.id,owner);expect(saved.discussion).toHaveLength(0);
   process.env.ALLOW_LIVE_AI='true';process.env.OPENAI_API_KEY='fake-test-no-network';
   parse.mockResolvedValueOnce({output_parsed:{message:'I think it travels 80 m.',work:null}}).mockRejectedValueOnce(new Error('Review unavailable'));
@@ -83,7 +83,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
   const {saveConnection}=await import('../lib/ai-connection');process.env.ALLOW_LIVE_AI='false';
   const owner=await who();let s=await createSession({...input(),personaId:'bart-v1'},owner);
   const send=()=>({revision:s.revision,idempotencyKey:crypto.randomUUID(),stepId:'s1',text:'hello',provider:'live' as const});
-  await expect(mutateSession(s.id,'messages',send(),owner)).rejects.toThrow('Connect an OpenAI API key in Settings');
+  await expect(mutateSession(s.id,'messages',send(),owner)).rejects.toThrow('Live AI is not connected');
   s=await getSession(s.id,owner);expect(s.discussion).toHaveLength(0);expect(parse).not.toHaveBeenCalled();
   await saveConnection({apiKey:'sk-test-fixture-no-paid-calls',model:'personal-model-one'},owner);
   parse.mockResolvedValue({output_parsed:{message:'Hey! I was hoping today’s homework had an escape hatch.',work:null}});
@@ -134,10 +134,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
   expect(status).toMatchObject({configured:true,personal:true,model:'stubbed-personal-model'});expect(JSON.stringify(status)).not.toContain(apiKey);
   const saved=await db.aiConnection.findUniqueOrThrow({where:{guestId:owner.id}});expect(saved.encryptedKey).not.toContain(apiKey);
   expect(await resolveAi(owner)).toEqual({apiKey,model:'stubbed-personal-model'});
-  expect((await connectionStatus(stranger)).configured).toBe(false);await expect(resolveAi(stranger)).rejects.toThrow('Connect');
+  expect((await connectionStatus(stranger)).configured).toBe(false);await expect(resolveAi(stranger)).rejects.toThrow('Live AI is not connected');
   const other=await db.aiConnection.create({data:{guestId:stranger.id,encryptedKey:saved.encryptedKey,model:saved.model}});
   await expect(resolveAi(stranger)).rejects.toThrow('cannot be opened');await db.aiConnection.delete({where:{id:other.id}});
-  await removeConnection(owner);await expect(resolveAi(owner)).rejects.toThrow('Connect');
+  await removeConnection(owner);await expect(resolveAi(owner)).rejects.toThrow('Live AI is not connected');
  });
  it('switches an existing mock classroom to a personal live key and saves recalculated drafts exactly once',async()=>{
   const {saveConnection}=await import('../lib/ai-connection');const owner=await who();
