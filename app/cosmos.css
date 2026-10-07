@@ -814,6 +814,21 @@ footer{gap:16px;flex-wrap:wrap}
 .cafe-radio iframe{display:block;width:100%;height:220px;border:0;background:#242537}
 @media(max-width:600px){.cafe-radio{right:12px;bottom:88px;width:300px}.audio-compact .audio-row button{width:27px;min-width:27px}.audio-compact .music-source{width:55px}.topbar-actions{gap:8px}.topbar .mode-badge{gap:6px}}
 
+/* The skate scene shares the room's colors and stays behind its controls. */
+.settings-page {position:relative;max-width:1180px;min-height:calc(100svh - 123px);}
+.settings-content {position:relative;z-index:1;max-width:660px;}
+.settings-skate {position:absolute;inset:0;display:block;overflow:hidden;pointer-events:none;mix-blend-mode:soft-light;opacity:.9;mask-image:linear-gradient(90deg,transparent 15%,#000 65%);}
+.settings-skate img {position:absolute;right:-55px;bottom:0;display:block;width:min(78%,760px);height:auto;mask-image:linear-gradient(90deg,transparent,#000 25%,#000 80%,transparent),linear-gradient(transparent,#000 18%,#000 80%,transparent);mask-composite:intersect;}
+@media(max-width:850px){
+ .settings-skate {opacity:.65;mask-image:linear-gradient(180deg,transparent 5%,#000 80%);}
+ .settings-skate img {right:-50px;width:100%;max-width:650px;}
+}
+@media(max-width:600px){
+ .settings-page {min-height:calc(100svh - 160px);}
+ .settings-skate {opacity:.5;mask-image:linear-gradient(#000,#000 20%,transparent 65%);}
+ .settings-skate img {right:-60px;top:-35px;bottom:auto;}
+}
+
 .audio-radio .music-source{margin-left:0}
 .settings-audio .audio{border:0;background:none;padding:0}
 .settings-audio .audio-label{display:flex}

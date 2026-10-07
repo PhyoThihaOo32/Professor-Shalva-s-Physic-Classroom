@@ -220,3 +220,9 @@ The default music source now opens the real lofi.cafe site in one small, visible
 The frame is sandboxed and receives no page referrer. CSP allows only https://www.lofi.cafe for frames; no third-party audio extraction, injected provider controls, or shared API key was added. The real embedded site was opened and started through its visible controls at a phone viewport, confirming the native station interface fits the window. Third-party station availability remains under lofi.cafe/YouTube control.
 
 Production build, ESLint, and five affected browser scenarios passed: actual synthesized output with shared playback/mute/volume/navigation controls, browser-audio failure/retry, radio lifecycle and network-loss fallback, student selection across five viewports, and mobile/keyboard/unavailable audio. The radio lifecycle scenario stubs the external document to make frame creation and persistence deterministic; it is separate from the real-site visual check. No paid model calls or credential changes were made.
+
+## Blended skate animation in Settings — October 7, 2026
+
+Embedded the supplied Freddy Arenas GIF unchanged into the Settings background. Soft-light blending, feathered edges, and responsive positioning retain the slate, mint, and lavender palette without an extra image card. The decorative scene does not intercept controls. A representative still replaces the animation for reduced motion.
+
+The production build and strict TypeScript passed. ESLint is warning-free after removing an unsupported ARIA attribute from the decorative picture. Browser smoke checks verified the animated asset, reduced-motion source, history dialog open/cancel, original offline playback/pause, and no horizontal overflow at desktop, tablet, and both tested phone widths. No browser errors or model calls occurred. Desktop and phone captures were visually inspected; the supplied GIF's SHA-256 matches the copied asset.
