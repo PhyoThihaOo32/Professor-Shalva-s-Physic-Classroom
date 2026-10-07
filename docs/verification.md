@@ -82,3 +82,65 @@ All 107 unit/database checks passed, including persisted Manual/classroom separa
 ## Rename and initial GitHub publication — October 7, 2026
 
 The app is now **Professor Shalva’s Physic Classroom**. Sidebar/onboarding branding, welcome text, browser metadata, favicon, history-export filename, and package/README naming are updated. Cookie/storage/database/encryption identifiers remain stable to preserve existing classrooms and personal-key access. Production build (including strict TypeScript), lint, all 107 isolated database/unit tests, and two desktop/mobile entry-flow browser tests passed. The renamed welcome page was visually inspected at a 900 px width; `professor-shalva-welcome.png` records the current branding. Git excludes `.env`, real keys, generated code, dependency/build cache symlinks, local databases, and browser traces.
+
+## Unified read-only Problems shelf
+
+The sidebar now contains Classroom, Problems, and Settings. Demos, Progress, and Course notes are removed from navigation. Problems combines the published question, diagram, and all authored worked steps; it has no session-start action and makes no session mutations. Old Manual URLs redirect to the matching reference, while old Progress/Course notes URLs redirect to the shelf. Existing live chats and saved data remain independent.
+
+Production build, TypeScript, lint, and 107 unit/database checks passed. All 22 browser scenarios passed across the full run and a focused rerun after adjusting a test to wait for the streamed legacy-route redirect. Checks cover reference content and diagrams, no session creation during browsing, live-chat recovery, three-item navigation, folded/mobile layout, music output/controls, and existing API settings and ownership. No paid model calls were used. Final reference captures include `reference-overview.png`, `problem-reference.png`, and `problem-reference-mobile.png`.
+
+
+## Step-by-step reference slides
+
+Reference solutions now show one authored step at a time, with a short explanation, the applicable equation, and a plain-language companion note for each of the nine Chapter 2 problems. Previous/Next navigation keeps the question and diagram available; a step count and slim progress indicator show the current position. The last slide offers Start again. Navigation is keyboard accessible and focuses the updated heading. Reference browsing remains read-only and independent of live chats.
+
+TypeScript and lint passed. All four affected browser scenarios passed across a focused run and a rerun after the cold-route run exhausted its total test timeout. Checks include one visible step, back/next boundaries, the last slide and restart, heading focus, equations and mobile overflow, changing problems, no session mutations, old-route redirects, and saved classroom recovery.
+
+## Bottom input and shared drawing paper
+
+The classroom now fills the viewport with independently scrolling conversation and one transparent input at the bottom. The board accepts student-generated vector diagrams and equations, with pen, arrow, label, undo, and clear tools for teacher annotations. Submitted marks and student diagrams persist alongside conversation and work revisions. The board opens when work changes, and toggling it keeps the latest conversation visible. Existing authored reference steps remain outside the live board.
+
+All **110 unit/database checks** and **24 browser scenarios** passed. Production build, strict TypeScript, and lint passed. After the final board-toggle scroll adjustment, its focused drawing scenario, production build, and lint passed again. New checks cover strict live-output geometry and rejection of arbitrary markup, teacher drawing context, atomic diagram/annotation snapshots, original-work preservation, invalid coordinate rejection, duplicate replay, refresh, pen and arrow gestures, keyboard labels, undo/clear separation, full desktop paper visibility, slim composer placement, mobile width, and conversation scroll position. Existing music, ownership, saved chats, keyboard input, references, and correction flows also passed.
+
+No paid API calls were made by these verification runs. Live provider tests use stubbed transport; browser drawing tests use the explicitly labeled offline demo. A read-only browser inspection of the owner's existing live SpongeBob conversation showed its generated two-train diagram and corrected inward arrows saved in the timeline, with the latest drawing on the work board. No new message was sent during that inspection. Visually inspected captures: `drawing-classroom.png`, `drawing-classroom-mobile.png`, and `live-drawing-classroom.png`.
+
+## One chat workspace
+
+The separate live board and its Show/Hide buttons are removed. Explanations, calculations, equations, and diagrams render inside each student reply; a small pencil control provides inline teacher annotations. Complete work snapshots are saved with each response, so later revisions cannot overwrite earlier displayed calculations. Legacy calculations are recovered only from an exactly matching step revision sequence. The palette, folding sidebar, reference shelf, and bottom input remain.
+
+All **111 unit/database tests**, TypeScript, lint, and production build passed. Five affected browser scenarios passed for inline calculations, Enter/Shift+Enter/IME behavior, classroom/reference recovery, personal connection persistence, and inline drawing tools. New checks exercise saved full work, distinct chronological reply calculations, safe legacy recovery and ambiguous-history rejection, annotation gestures and keyboard labels, refresh, absence of board controls, and mobile overflow/composer placement. UI/provider verification made no paid calls. A read-only inspection of the existing live SpongeBob session confirmed older calculations and revised train diagrams appear inline in their original replies. Final captures are `chat-calculations.png`, `chat-drawing-classroom.png`, and `chat-drawing-classroom-mobile.png`.
+
+## Embedded welcome GIF
+
+The user-supplied Two Dots GIF is embedded on the welcome page with screen blending and a radial edge mask. Its copied animation matches the original SHA-256 hash; the source is unchanged. A native picture source selects a still first frame when reduced motion is enabled. Desktop checks confirm the GIF loads at its native 480 × 360 size; mobile checks confirm the still source loads, there is no horizontal overflow, and the onboarding flow remains functional.
+
+Production build, TypeScript, lint without warnings, and both affected desktop/mobile onboarding browser scenarios passed. The first cold development run left the welcome page after an attempted navigation during compilation; the warm rerun passed both complete flows. Final desktop and mobile views were visually inspected. Captures: `welcome-space-preview.png`, `welcome-space-gif.png`, and `welcome-space-mobile.png`. No paid API calls or remote media requests were needed.
+
+## Two welcome animations in opposite corners
+
+Added the unchanged Tomas Brunsdon astronaut GIF alongside the Two Dots animation. The upper-right and lower-left grid slots frame centered welcome copy without intersecting each other or the text. The welcome gradient covers the full document, retaining smooth screen blending below the initial viewport. Both GIFs have reduced-motion still sources. The two affected desktop/mobile onboarding checks passed, including image loading, non-overlap bounds, mobile overflow, and saved-student navigation. Targeted ESLint passed. Visually inspected `welcome-two-gifs.png` and `welcome-two-gifs-mobile.png`.
+
+## Full-page welcome and role scenes
+
+Replaced the two corner decorations with one full-page animation per route: Two Dots on welcome, Tomas Brunsdon on role selection. Tests check that each scene covers its onboarding shell and that the other animation is absent, both on desktop and with mobile reduced-motion still sources. Responsive role cards remain readable over the animation. The welcome action uses a native link so it works before hydration; the persistence check now waits for the chosen student to appear selected before refreshing. Targeted ESLint passes without warnings. Visually inspected the desktop welcome and roles captures plus mobile role selection.
+
+The entry verification exposed a click before hydration on the student chooser. Interactive role/student buttons now remain disabled until client event handlers are ready, so the first selection cannot silently disappear.
+
+Final verification: both affected onboarding browser checks passed (desktop and mobile); targeted ESLint passed with no warnings. The running local preview includes all changes.
+
+## Compact student selection with evite animation
+
+Added the unchanged evite GIF at its native 480 × 296 size with a reduced-motion PNG source, using the same full-page scene layer as welcome and roles. Tightened the header, title, character choices, and classroom action. Desktop uses three columns; mobile uses compact rows; short viewports show personality labels in place of longer descriptions. The mobile entry flow passes and targeted ESLint reports no errors or warnings. The portrait check now verifies GIF loading, reduced-motion source selection, all three profiles, the visible classroom button, and no document scrolling at desktop, phone, and landscape sizes.
+
+Final result: no horizontal or vertical document scrolling at 1280 × 720, 1093 × 874, 390 × 844, 375 × 667, and 844 × 390; all three profiles and Enter classroom stay accessible. Portrait/persistence and mobile entry checks pass. Visually reviewed desktop, regular phone, short phone, and landscape captures.
+
+## Original palette restored around the GIFs
+
+Unified the entry scenes with the existing slate/teal/lavender canvas and shared choice-state variables. GIFs remain full-page, but screen blending, 46% opacity, and reduced saturation soften their colors. Removed separate plum/burgundy backgrounds and restored shared text, mint navigation/actions, and peach student labels. All three affected browser checks pass: portrait/loading and persistence, desktop onboarding, and mobile onboarding. The five student-selection viewport checks still confirm no scrolling. Visually inspected the welcome, role, and student screenshots with the restored theme.
+
+
+## Final verification before GitHub push — October 7, 2026
+
+The complete current application passed **111 unit/database tests** against the isolated PostgreSQL test database and **24 browser scenarios** in one uninterrupted run. The mock evaluation passed **18 generated attempts and 36 corrections**. Production build, strict TypeScript, ESLint, and Git whitespace checks passed. These verification runs made no paid OpenAI calls.
+
+Browser coverage includes original audio playback and controls; read-only problem slides and redirects; chronological inline calculations and drawings; Enter/Shift+Enter and composition handling; saved conversations, ownership and credential isolation; folding navigation; GIF loading and reduced-motion sources; and compact student selection at five desktop/mobile viewport sizes. The browser harness now waits for legacy redirects to finish, polls for the reduced-motion image source to load, and retries a read-only progress request once on a connection reset. Product assertions remain unchanged.

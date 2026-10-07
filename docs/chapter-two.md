@@ -1,3 +1,5 @@
+> Current interface: **Classroom · Problems · Settings**. Problems combines the question, diagram, and all authored worked steps in a read-only view. Demos are removed from the shelf; Progress and Course notes are removed from navigation. Older Manual links redirect to the unified reference. Browsing references does not create sessions or change the live classroom. Earlier workflow descriptions below are historical.
+
 # Chapter 2 classroom
 
 Entering Classroom starts or resumes a saved conversation with the selected character. New classrooms use problem 5, “The drive home,” at guided difficulty with explicitly labeled mock responses. The main view shows only saved teacher–student exchanges and one guide/correction composer, without a repeated conversation heading, canned greeting, or automatic worked-step blocks. Messages and the input share a subdued conversation panel. “Show work board” opens the steps, checking, hints, revisions, and completion controls above the conversation; “Next step” reveals further work there. Finished sessions retain their saved conversation and review.

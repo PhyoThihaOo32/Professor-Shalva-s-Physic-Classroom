@@ -1,2 +1,2 @@
-import {Progress} from '@/components/progress';
-export default function Page(){return <Progress/>;}
+import {redirect} from 'next/navigation';
+export default function Page(){redirect('/library');}

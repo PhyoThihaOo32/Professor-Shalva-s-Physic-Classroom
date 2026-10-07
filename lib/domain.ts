@@ -1,3 +1,4 @@
+import type {BoardDrawing} from './drawing';
 import type { z } from 'zod';
 import type { StepSchema, CriteriaSchema, EvaluationSchema, TemplateSchema, ProblemSchema } from './schemas';
 export const families = ['CONCEPT','FORMULA','SIGN','ALGEBRA','ARITHMETIC','UNITS','DIAGRAM','JUSTIFICATION','ASSUMPTION','CONCLUSION'] as const;
@@ -29,7 +30,8 @@ export const rubricWeights={identify:25,physics:30,correction:25,check:10,clarit
 export const severityWeights={minor:1,major:2,critical:3} as const;
 export function criterionScore(criteria:Criteria, applicable: readonly (keyof Criteria)[]=Object.keys(rubricWeights) as (keyof Criteria)[]) { const max=applicable.reduce((s,k)=>s+rubricWeights[k],0); return max ? Math.round(applicable.reduce((s,k)=>s+criteria[k]*rubricWeights[k],0)/max*100):0; }
 export type PublicProblem={kind:ProblemData['kind'];chapterId?:string;problemNumber?:number;id:string;versionId:string;version:number;title:string;subtitle:string;statement:string;objectives:string[];givens:ProblemData['givens'];requested:string;assumptions:string[];diagram:ProblemData['diagram'];diagramCaption:string;diagramRequired:boolean;source:string;permission:string;rubric:string[]};
+export type PublicReference={problem:PublicProblem;steps:Step[]};
 export function publicProblem(id:string,versionId:string,version:number,p:ProblemData):PublicProblem {return {kind:p.kind,chapterId:p.chapterId,problemNumber:p.problemNumber,id,versionId,version,title:p.title,subtitle:p.subtitle,statement:p.statement,objectives:p.objectives,givens:p.givens,requested:p.requested,assumptions:p.assumptions,diagram:p.diagram,diagramCaption:p.diagramCaption,diagramRequired:p.diagramRequired,source:p.source,permission:p.permission,rubric:p.rubric};}
 export type ConversationTurn={id:string;stepId:string;teacher:string;student:string;createdAt:string};
-export type DiscussionTurn=ConversationTurn & {kind:'message'|'correction'|'check';workUpdated?:boolean};
+export type DiscussionTurn=ConversationTurn & {kind:'message'|'correction'|'check';workUpdated?:boolean;work?:Step;drawing?:BoardDrawing;teacherDrawing?:BoardDrawing};
 export type PublicSession={mode?:'manual'|'classroom';id:string;revision:number;state:string;provider:string;difficulty:string;personaId:string;problem:PublicProblem;visibleCount:number;totalSteps:number;steps:{id:string;position:number;original:Step;current:Step;valid:boolean;history:Step[]}[];corrections:{id:string;stepId:string;text:string;verdict:string;feedback:Evaluation}[];hints:{stepId:string;level:number}[];assessments:{rootStep:string;score:number;provisional:boolean;disputed:boolean;disputeReason:string|null}[];score:number;provisional:boolean;assistance:{hints:number;revealed:boolean};verified:Step[]|null;message:string;conversation:ConversationTurn[];discussion?:DiscussionTurn[]};

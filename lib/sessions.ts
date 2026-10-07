@@ -1,4 +1,6 @@
-import { ProblemSchema } from './schemas';
+import {DrawingSchema} from './drawing';
+import type {BoardDrawing} from './drawing';
+import { ProblemSchema,StepSchema } from './schemas';
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
@@ -13,7 +15,7 @@ import {resolveAi} from './ai-connection';
 import { mockProvider,liveProvider,type CallRecorder,type ConversationResult } from './providers';
 export const json=(value:unknown)=>JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 export const createSchema=z.object({problemId:z.string().max(100),personaId:z.enum(['spongebob-v1','bart-v1','stewie-v1','milo-v1','nora-v1','theo-v1']),difficulty:z.enum(['guided','standard','challenge']),provider:z.enum(['mock','live']),mode:z.enum(['manual','classroom']).optional(),idempotencyKey:z.string().min(8).max(100)}).strict();
-export const mutationSchema=z.object({revision:z.number().int().nonnegative(),idempotencyKey:z.string().min(8).max(100),stepId:z.string().max(40).optional(),text:z.string().max(2000).optional(),action:z.enum(['correct','valid','dispute','resolve-dispute']).optional(),level:z.number().int().min(1).max(3).optional(),reveal:z.boolean().optional(),provider:z.enum(['mock','live']).optional()}).strict();
+export const mutationSchema=z.object({revision:z.number().int().nonnegative(),idempotencyKey:z.string().min(8).max(100),stepId:z.string().max(40).optional(),text:z.string().max(2000).optional(),action:z.enum(['correct','valid','dispute','resolve-dispute']).optional(),level:z.number().int().min(1).max(3).optional(),reveal:z.boolean().optional(),provider:z.enum(['mock','live']).optional(),drawing:DrawingSchema.optional()}).strict();
 export type Mutation=z.infer<typeof mutationSchema>;
 const includes={problemVersion:true,personaVersion:true,steps:{orderBy:{position:'asc' as const}},errors:true,corrections:{orderBy:{createdAt:'asc' as const}},hints:true,assessments:true,events:{where:{type:'messages'},orderBy:[{createdAt:'desc' as const},{id:'desc' as const}],take:100}};
 export async function loadSession(id:string,who:Identity){const s=await db.session.findUnique({where:{id},include:includes});assert(s&&owned(s,who),'NOT_FOUND','Session not found.',404);return s;}
@@ -23,13 +25,22 @@ export function sessionDTO(s:Awaited<ReturnType<typeof loadSession>>,latestMessa
  const weighted=s.errors.reduce((sum,e)=>sum+severityWeights[e.severity as keyof typeof severityWeights],0);
  const score=weighted?s.errors.reduce((sum,e)=>{const a=s.assessments.find(a=>a.rootStep===e.rootStep);return sum+(e.resolved?(a?.score??0):0)*severityWeights[e.severity as keyof typeof severityWeights];},0)/weighted:100;
  const visibleIds=new Set(s.steps.filter(st=>revealed||st.position<s.visibleCount).map(st=>st.stableId));
+ // Older conversation events kept work only in step history. Recover it only
+ // when every revision has an exact chronological event match.
+ const historicalWork=new Map<string,Step>();
+ for(const step of s.steps.filter(st=>visibleIds.has(st.stableId))){
+  const revisions=[...events].reverse().filter(e=>{const d=e.data as {stepId?:string;workUpdated?:boolean};return d.stepId===step.stableId&&d.workUpdated===true;});
+  const versions=[...(step.history as unknown as Step[]),step.current as unknown as Step];
+  if(versions.length===revisions.length+1&&JSON.stringify(versions[0])===JSON.stringify(step.original))revisions.forEach((event,index)=>historicalWork.set(event.id,versions[index+1]));
+ }
  const conversation=s.events.filter(e=>e.type==='messages').reverse().flatMap(e=>{const data=e.data as {stepId?:string;teacher?:string;message?:string};return typeof data.teacher==='string'&&typeof data.message==='string'&&typeof data.stepId==='string'&&visibleIds.has(data.stepId)?[{id:e.id,stepId:data.stepId,teacher:data.teacher,student:data.message,createdAt:e.createdAt.toISOString()}]:[];});
  const discussion:DiscussionTurn[]=[...events].reverse().flatMap(e=>{
-  const data=e.data as {stepId?:string;teacher?:string;message?:string;action?:string;workUpdated?:boolean};
+  const data=e.data as {stepId?:string;teacher?:string;message?:string;action?:string;workUpdated?:boolean;work?:Step;drawing?:BoardDrawing;teacherDrawing?:BoardDrawing};
   const kind=e.type==='messages'?'message':e.type==='corrections'&&data.action==='correct'?'correction':e.type==='corrections'&&data.action==='valid'?'check':null;
   const teacher=data.teacher??(kind==='check'?'This step is valid.':undefined);
   if(!kind||typeof teacher!=='string'||typeof data.message!=='string'||typeof data.stepId!=='string'||!visibleIds.has(data.stepId))return [];
-  return [{id:e.id,stepId:data.stepId,teacher,student:data.message,createdAt:e.createdAt.toISOString(),kind,...(data.workUpdated===true?{workUpdated:true}:{})}];
+  const work=StepSchema.safeParse(data.work??historicalWork.get(e.id));
+  return [{id:e.id,stepId:data.stepId,teacher,student:data.message,createdAt:e.createdAt.toISOString(),kind,...(data.workUpdated===true?{workUpdated:true}:{}),...(work.success&&work.data.id===data.stepId?{work:work.data}:{}),...(data.drawing?{drawing:DrawingSchema.parse(data.drawing)}:{}),...(data.teacherDrawing?{teacherDrawing:DrawingSchema.parse(data.teacherDrawing)}:{})}];
  });
  return {discussion,conversation,id:s.id,revision:s.revision,state:s.state,provider:s.provider,difficulty:s.difficulty,personaId:s.personaVersionId,problem:publicProblem(s.problemVersion.problemId,s.problemVersion.id,s.problemVersion.version,p),visibleCount:s.visibleCount,totalSteps:s.steps.length,steps:s.steps.filter(st=>revealed||st.position<s.visibleCount).map(st=>({id:st.stableId,position:st.position,original:st.original as unknown as Step,current:st.current as unknown as Step,valid:st.valid,history:st.history as unknown as Step[]})),corrections:s.corrections.map(c=>({id:c.id,stepId:c.stepId,text:c.text,verdict:c.verdict,feedback:c.feedback as unknown as Evaluation})),hints:s.hints.map(h=>({stepId:h.stepId,level:h.level})),assessments:s.assessments.map(a=>({rootStep:a.rootStep,score:a.score,provisional:a.provisional,disputed:a.disputed,disputeReason:a.disputeReason})),score:Math.round(score),provisional:!revealed||s.assessments.some(a=>a.provisional||a.disputed),assistance:{hints:s.hints.length,revealed:s.state==='revealed'},verified:revealed?p.reference:null,message:latestMessage??(typeof s.events[0]?.data==='object'&&s.events[0].data&&'message' in s.events[0].data?String(s.events[0].data.message):findPersona(s.personaVersionId)?.voice??'')};
 }
@@ -106,7 +117,7 @@ export async function mutateSession(id:string,kind:'next'|'corrections'|'hints'|
   const connection=(s.provider==='live'&&(kind==='messages'||(kind==='corrections'&&!['dispute','resolve-dispute'].includes(body.action??''))))||(kind==='provider'&&body.provider==='live')?await resolveAi(who):null;
   const provider=connection?liveProvider(s.model??connection.model,connection.apiKey):mockProvider;
   const record=recorder(id,s.model??connection?.model??'mock',Date.now()+30000);
-  const conversation={text:body.text??'',step:st?.current as unknown as Step,persona:findPersona(s.personaVersionId)!,history:sessionDTO(s).discussion??sessionDTO(s).conversation,problem:publicProblem(s.problemVersion.problemId,s.problemVersion.id,s.problemVersion.version,p)};
+  const conversation={text:body.text??'',step:st?.current as unknown as Step,persona:findPersona(s.personaVersionId)!,history:sessionDTO(s).discussion??sessionDTO(s).conversation,problem:publicProblem(s.problemVersion.problemId,s.problemVersion.id,s.problemVersion.version,p),teacherDrawing:body.drawing};
   if(kind==='messages'){response=await provider.converse(conversation,record);reply=response.message;}
   if(kind==='corrections'&&body.action!=='valid'&&!['dispute','resolve-dispute'].includes(body.action??'')){
    evaluation=await provider.evaluate(body.text!,p,st!.current as unknown as Step,template,record);
@@ -174,7 +185,7 @@ export async function mutateSession(id:string,kind:'next'|'corrections'|'hints'|
     await tx.session.update({where:{id},data:{state:body.reveal?'revealed':'completed',visibleCount:s.steps.length}});message=body.reveal?'You explicitly revealed the reviewed solution. Unresolved root issues score zero.':'Teaching complete. The final solution comes from the reviewed physics reference.';
    }
    await tx.session.update({where:{id},data:{revision:{increment:1}}});
-   await tx.sessionEvent.create({data:{sessionId:id,type:kind,data:json({stepId:body.stepId,action:kind==='corrections'?(body.action??'correct'):body.action,message,...(kind==='messages'?{teacher:body.text,promptVersion:CHAT_PROMPT_VERSION,workUpdated}:kind==='corrections'&&!['dispute','resolve-dispute'].includes(body.action??'')?{teacher:body.action==='valid'?'This step is valid.':body.text,workUpdated}:{})})}});
+   await tx.sessionEvent.create({data:{sessionId:id,type:kind,data:json({stepId:body.stepId,action:kind==='corrections'?(body.action??'correct'):body.action,message,...(kind==='messages'?{teacher:body.text,promptVersion:CHAT_PROMPT_VERSION,workUpdated,...(response?.work?{work:response.work}:{}),...(response?.work?.drawing?{drawing:response.work.drawing}:{}),...(body.drawing?{teacherDrawing:body.drawing}:{})}:kind==='corrections'&&!['dispute','resolve-dispute'].includes(body.action??'')?{teacher:body.action==='valid'?'This step is valid.':body.text,workUpdated,...(response?.work?{work:response.work}:{}),...(response?.work?.drawing?{drawing:response.work.drawing}:{})}:{})})}});
    const saved=await tx.session.findUniqueOrThrow({where:{id},include:includes});
    const result={session:sessionDTO(saved,message,await tx.sessionEvent.findMany(discussionQuery(id))),...(hint?{hint}:{})};
    await tx.operation.update({where:{sessionId_key:{sessionId:id,key:body.idempotencyKey}},data:{status:'complete',result:json(result)}});

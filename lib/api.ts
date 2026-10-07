@@ -18,9 +18,10 @@ export async function handle(request:Request){
   if(method!=='GET')checkOrigin(request);
   if(path[0]==='chapters'&&method==='GET')return ok(await db.chapter.findMany({select:{id:true,title:true,source:true,_count:{select:{problems:true}}}}));
   if(path[0]==='problems'&&method==='GET'){
+   assert(path.length<=2||(path.length===3&&path[1]&&path[2]==='reference'),'NOT_FOUND','Route not found.',404);
    const versions=path[1]?await db.problemVersion.findMany({where:{problemId:path[1],status:'published'},orderBy:{version:'desc'},take:1}):await db.problemVersion.findMany({where:{status:'published'},orderBy:{version:'desc'}});
    const seen=new Set<string>();const data=versions.filter(p=>{if(seen.has(p.problemId))return false;seen.add(p.problemId);return true;}).map(p=>publicProblem(p.problemId,p.id,p.version,ProblemSchema.parse(p.data)));
-   if(path[1]){assert(data.length,'NOT_FOUND','Published problem not found.',404);return ok(data[0]);}return ok(data);
+   if(path[1]){assert(data.length,'NOT_FOUND','Published problem not found.',404);if(path[2]==='reference'){const problem=ProblemSchema.parse(versions[0].data);assert(problem.kind!=='original-demo','NOT_FOUND','Problem reference not found.',404);return ok({problem:data[0],steps:problem.reference});}return ok(data[0]);}return ok(data);
   }
   const who=await identity();
   if(path[0]==='config'&&method==='GET')return ok({personas,liveEnabled:(await connectionStatus(who)).configured,owner:who.owner,authenticationConfigured:!!process.env.AUTH_GITHUB_ID,identity:who.kind});

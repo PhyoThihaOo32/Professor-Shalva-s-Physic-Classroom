@@ -37,5 +37,5 @@ export function Classroom({studentId}:{studentId?:string}){
  },[personaId,retry,hydrated]);
  if(opened?.personaId===personaId)return <Workspace key={opened.id} id={opened.id} conversationFirst/>;
  const persona=personas.find(p=>p.id===personaId)!;
- return <div className="page classroom-opening"><Avatar id={personaId} size={64}/><h1>{persona.name.split(' ')[0]}’s classroom</h1><p role={error?'alert':'status'}>{error||'Getting your conversation ready…'}</p>{error&&<button className="button" onClick={()=>{try{localStorage.removeItem(`chalklight-room-start-${personaId}`);}catch{}setError('');setRetry(n=>n+1);}}>Try again</button>}<Link className="text-button" href={`/library?student=${personaId}`}>Open Library</Link></div>;
+ return <div className="page classroom-opening"><Avatar id={personaId} size={64}/><h1>{persona.name.split(' ')[0]}’s classroom</h1><p role={error?'alert':'status'}>{error||'Getting your conversation ready…'}</p>{error&&<button className="button" onClick={()=>{try{localStorage.removeItem(`chalklight-room-start-${personaId}`);}catch{}setError('');setRetry(n=>n+1);}}>Try again</button>}<Link className="text-button" href={`/library?student=${personaId}`}>Browse problems</Link></div>;
 }

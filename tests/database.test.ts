@@ -93,7 +93,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
   const changed=await mutateSession(s.id,'messages',body,owner);expect(changed.session.steps[0].current).toEqual(work);expect(changed.session.steps[0].original).toEqual(original);expect(changed.session.steps[0].history).toHaveLength(1);expect(changed.session.steps[0].valid).toBe(false);expect(changed.session.verified).toBeNull();expect(changed.session.discussion?.at(-1)?.workUpdated).toBe(true);
   expect(await mutateSession(s.id,'messages',body,owner)).toEqual(changed);expect(parse).toHaveBeenCalledTimes(1);
   const messages=parse.mock.calls[0][0].input;const payload=JSON.parse(messages[2].content.split('\n').slice(1).join('\n'));expect(payload.problem.statement).toBe(s.problem.statement);expect(JSON.stringify(payload)).not.toContain('expectedCorrection');expect(payload.problem.reference).toBeUndefined();expect(messages.at(-1)).toEqual({role:'user',content:body.text});
-  const saved=await getSession(s.id,owner);expect(saved.steps[0].current).toEqual(work);expect(saved.conversation.at(-1)?.student).toContain('2.21');
+  const saved=await getSession(s.id,owner);expect(saved.steps[0].current).toEqual(work);expect(saved.conversation.at(-1)?.student).toContain('2.21');expect(saved.discussion?.at(-1)?.work).toEqual(work);
   s=(await mutateSession(s.id,'provider',{revision:saved.revision,idempotencyKey:crypto.randomUUID(),provider:'mock'},owner)).session;expect(s.steps[0].current).toEqual(work);expect(s.conversation).toHaveLength(1);
  });
  it('does not save an invalid live rewrite or silently substitute a demo reply',async()=>{
@@ -101,6 +101,32 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
   parse.mockResolvedValue({output_parsed:{message:'Updated.',work:{...s.steps[0].current,id:'s8'}}});
   await expect(mutateSession(s.id,'messages',{revision:s.revision,idempotencyKey:crypto.randomUUID(),stepId:'s1',text:'Recalculate.'},owner)).rejects.toThrow('provider');
   const saved=await getSession(s.id,owner);expect(saved.steps[0].current).toEqual(s.steps[0].current);expect(saved.conversation).toHaveLength(0);expect(parse).toHaveBeenCalledTimes(2);
+ });
+
+ it('saves diagram snapshots and teacher annotations atomically, preserves old drawings, and rejects invalid coordinates',async()=>{
+  const owner=await who();let s=await createSession({...input(),problemId:'ch2-driving-home'},owner);const original=s.steps[0].current;
+  const teacherDrawing={title:'Teacher direction',description:'Choose right as positive.',elements:[{kind:'arrow' as const,x1:100,y1:300,x2:600,y2:300,color:'coral' as const}]};
+  const body={revision:s.revision,idempotencyKey:crypto.randomUUID(),stepId:'s1',text:'Draw the motion.',drawing:teacherDrawing};
+  const result=await mutateSession(s.id,'messages',body,owner);s=result.session;expect(s.discussion?.at(-1)?.drawing?.elements.length).toBeGreaterThan(0);expect(s.discussion?.at(-1)?.teacherDrawing).toEqual(teacherDrawing);expect(s.steps[0].current.drawing).toEqual(s.discussion?.at(-1)?.drawing);expect(s.discussion?.at(-1)?.work).toEqual(s.steps[0].current);expect(s.steps[0].original).toEqual(original);expect(s.verified).toBeNull();
+  expect(await mutateSession(s.id,'messages',body,owner)).toEqual(result);const first=s.discussion?.at(-1)?.drawing;const refreshed=await getSession(s.id,owner);expect(refreshed.discussion).toEqual(s.discussion);
+  const second=await mutateSession(s.id,'messages',{...body,revision:s.revision,idempotencyKey:crypto.randomUUID(),text:'Please sketch it again.'},owner);expect(second.session.discussion?.[0].drawing).toEqual(first);
+  const {mutationSchema}=await import('../lib/sessions');expect(mutationSchema.safeParse({...body,drawing:{...teacherDrawing,elements:[{...teacherDrawing.elements[0],x1:-1}]}}).success).toBe(false);
+ });
+
+ it('recovers old reply calculations from exact history and avoids guessing when revisions do not match',async()=>{
+  const owner=await who();let s=await createSession({...input(),problemId:'ch2-driving-home'},owner);
+  s=(await mutateSession(s.id,'provider',{revision:s.revision,idempotencyKey:crypto.randomUUID(),provider:'live'},owner)).session;
+  const first={...s.steps[0].current,title:'First calculation',text:'Divide distance by speed.',equation:'t=210/95',value:2.21,unit:'h'};
+  parse.mockResolvedValue({output_parsed:{message:'First result.',work:first}});
+  s=(await mutateSession(s.id,'messages',{revision:s.revision,idempotencyKey:crypto.randomUUID(),stepId:'s1',text:'Calculate the first time.'},owner)).session;
+  const second={...first,title:'Hypothetical calculation',text:'Try a hypothetical speed of 100 km/h.',equation:'t=210/100',value:2.1};
+  parse.mockResolvedValue({output_parsed:{message:'Second result.',work:second}});
+  s=(await mutateSession(s.id,'messages',{revision:s.revision,idempotencyKey:crypto.randomUUID(),stepId:'s1',text:'Try 100 km/h.'},owner)).session;
+  expect(s.discussion?.map(t=>t.work)).toEqual([first,second]);
+  for(const turn of s.discussion!){const event=await db.sessionEvent.findUniqueOrThrow({where:{id:turn.id}});const data={...event.data as Record<string,unknown>};delete data.work;await db.sessionEvent.update({where:{id:event.id},data:{data:JSON.parse(JSON.stringify(data))}});}
+  const recovered=await getSession(s.id,owner);expect(recovered.discussion?.map(t=>t.work)).toEqual([first,second]);expect(recovered.verified).toBeNull();
+  await db.attemptStep.updateMany({where:{sessionId:s.id,stableId:'s1'},data:{history:JSON.parse(JSON.stringify([s.steps[0].original,first,first]))}});
+  const uncertain=await getSession(s.id,owner);expect(uncertain.discussion?.every(t=>t.work===undefined)).toBe(true);expect(uncertain.steps[0].current).toEqual(second);
  });
 
 });

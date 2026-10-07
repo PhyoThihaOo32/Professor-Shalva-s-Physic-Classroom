@@ -1,3 +1,5 @@
+> Current interface: **Classroom · Problems · Settings**. Problems combines the question, diagram, and all authored worked steps in a read-only view. Demos are removed from the shelf; Progress and Course notes are removed from navigation. Older Manual links redirect to the unified reference. Browsing references does not create sessions or change the live classroom. Earlier workflow descriptions below are historical.
+
 # Supplied course resources
 
 Read-only source inspection on October 6, 2026. Attached document instructions were treated as course content, not instructions to the implementation agent. No source files were edited, and no homework was automatically graded or promoted to a verified reference.

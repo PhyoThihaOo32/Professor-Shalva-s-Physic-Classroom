@@ -1,3 +1,5 @@
+> Current interface: **Classroom · Problems · Settings**. Problems combines the question, diagram, and all authored worked steps in a read-only view. Demos are removed from the shelf; Progress and Course notes are removed from navigation. Older Manual links redirect to the unified reference. Browsing references does not create sessions or change the live classroom. Earlier workflow descriptions below are historical.
+
 # Lo-fi twilight theme and Orbit radio
 
 The theme uses native CSS throughout the interface; no wallpaper image is embedded. Smooth Manrope typography stays readable while mint, lavender, peach, and muted teal give the room more color. Sparse starlight appears at the margins, with orbital lines in the top bar and on the welcome page. The compact classroom, folded sidebar, and separate Manual library retain their existing behavior.

@@ -1,0 +1,12 @@
+import type {PublicProblem} from './domain';
+import type {BoardDrawing,DrawingElement} from './drawing';
+// Explicit offline sketches; live replies supply their own geometry.
+export function demoDrawing(problem:PublicProblem):BoardDrawing {
+ const label=(x:number,y:number,text:string):DrawingElement=>({kind:'text',x,y,text,color:'ink'});
+ const arrow=(x1:number,y1:number,x2:number,y2:number,color:'teal'|'violet'='teal'):DrawingElement=>({kind:'arrow',x1,y1,x2,y2,color});
+ const givens=problem.givens.slice(0,4).map((g,i)=>label(90+i*220,545,`${g.symbol} = ${g.value} ${g.unit}`));
+ if(problem.diagram==='position')return {title:'Position against time',description:'Time increases along the horizontal axis. The plotted positions rise, turn, and then fall for x(t) = 27 + 10t − 2t³.',elements:[arrow(100,460,900,460),arrow(100,460,100,80),label(860,505,'t (s)'),label(120,75,'x (m)'),label(90,505,'0'),label(790,505,'3.0'),label(35,175,'40'),{kind:'path',color:'violet',points:Array.from({length:25},(_,i)=>{const t=i/8;return {x:100+t*240,y:460-(27+10*t-2*t**3)*7};})}]};
+ if(problem.diagram==='trains')return {title:'Two trains closing the gap',description:'Both trains move toward one another. Each arrow reduces the separation, so their speed magnitudes add when finding the closing speed.',elements:[{kind:'line',x1:120,y1:365,x2:880,y2:365,color:'ink'},arrow(220,290,420,290),arrow(780,290,580,290,'violet'),label(160,240,'155 km/h'),label(670,240,'155 km/h'),label(420,145,'Gap: 9.5 km'),...givens]};
+ if(['vertical','cliff'].includes(problem.diagram))return {title:'Upward and downward motion',description:'Upward is the positive direction. Gravity points downward throughout the motion, including while the object is still rising.',elements:[arrow(170,460,170,90),label(95,80,'+y'),{kind:'path',color:'violet',points:[{x:390,y:400},{x:390,y:260},{x:450,y:120},{x:510,y:260},{x:510,y:490}]},arrow(690,170,690,370),label(720,270,'gravity ↓'),label(270,430,'release'),...givens]};
+ return {title:'Sketch of the motion',description:'The line tracks the direction of travel. The labels record the given quantities; distances and elapsed times must be interpreted together.',elements:[arrow(100,330,900,330),{kind:'circle',cx:140,cy:330,r:16,color:'teal'},{kind:'circle',cx:500,cy:330,r:16,color:'violet'},{kind:'circle',cx:860,cy:330,r:16,color:'coral'},label(100,265,'start'),label(420,265,'motion →'),label(805,265,'finish'),...givens]};
+}

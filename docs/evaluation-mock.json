@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-06T21:03:51.846Z",
+  "timestamp": "2026-10-07T09:03:14.204Z",
   "provider": "mock",
   "model": null,
   "paidCalls": 0,
@@ -9,109 +9,109 @@
     "cases": [
       {
         "problem": "around-the-bend",
-        "persona": "milo-v1",
+        "persona": "spongebob-v1",
         "difficulty": "guided",
         "pass": true
       },
       {
         "problem": "around-the-bend",
-        "persona": "nora-v1",
+        "persona": "bart-v1",
         "difficulty": "standard",
         "pass": true
       },
       {
         "problem": "around-the-bend",
-        "persona": "theo-v1",
+        "persona": "stewie-v1",
         "difficulty": "challenge",
         "pass": true
       },
       {
         "problem": "flat-road",
-        "persona": "milo-v1",
+        "persona": "spongebob-v1",
         "difficulty": "guided",
         "pass": true
       },
       {
         "problem": "flat-road",
-        "persona": "nora-v1",
+        "persona": "bart-v1",
         "difficulty": "standard",
         "pass": true
       },
       {
         "problem": "flat-road",
-        "persona": "theo-v1",
+        "persona": "stewie-v1",
         "difficulty": "challenge",
         "pass": true
       },
       {
         "problem": "water-in-the-bucket",
-        "persona": "milo-v1",
+        "persona": "spongebob-v1",
         "difficulty": "guided",
         "pass": true
       },
       {
         "problem": "water-in-the-bucket",
-        "persona": "nora-v1",
+        "persona": "bart-v1",
         "difficulty": "standard",
         "pass": true
       },
       {
         "problem": "water-in-the-bucket",
-        "persona": "theo-v1",
+        "persona": "stewie-v1",
         "difficulty": "challenge",
         "pass": true
       },
       {
         "problem": "bottom-of-the-loop",
-        "persona": "milo-v1",
+        "persona": "spongebob-v1",
         "difficulty": "guided",
         "pass": true
       },
       {
         "problem": "bottom-of-the-loop",
-        "persona": "nora-v1",
+        "persona": "bart-v1",
         "difficulty": "standard",
         "pass": true
       },
       {
         "problem": "bottom-of-the-loop",
-        "persona": "theo-v1",
+        "persona": "stewie-v1",
         "difficulty": "challenge",
         "pass": true
       },
       {
         "problem": "conical-pendulum",
-        "persona": "milo-v1",
+        "persona": "spongebob-v1",
         "difficulty": "guided",
         "pass": true
       },
       {
         "problem": "conical-pendulum",
-        "persona": "nora-v1",
+        "persona": "bart-v1",
         "difficulty": "standard",
         "pass": true
       },
       {
         "problem": "conical-pendulum",
-        "persona": "theo-v1",
+        "persona": "stewie-v1",
         "difficulty": "challenge",
         "pass": true
       },
       {
         "problem": "rpm-to-acceleration",
-        "persona": "milo-v1",
+        "persona": "spongebob-v1",
         "difficulty": "guided",
         "pass": true
       },
       {
         "problem": "rpm-to-acceleration",
-        "persona": "nora-v1",
+        "persona": "bart-v1",
         "difficulty": "standard",
         "pass": true
       },
       {
         "problem": "rpm-to-acceleration",
-        "persona": "theo-v1",
+        "persona": "stewie-v1",
         "difficulty": "challenge",
         "pass": true
       }

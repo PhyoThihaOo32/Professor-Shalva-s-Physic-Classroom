@@ -1,4 +1,22 @@
+> Current interface: **Classroom · Problems · Settings**. Problems combines the question, diagram, and authored worked steps in a read-only slide view. Demos are removed from the shelf; Progress and Course notes are removed from navigation. Older Manual links redirect to the unified reference. Browsing references does not create sessions or change the live classroom. Earlier workflow descriptions below are historical.
+
 # Live conversations and revised work
+
+## Chat as the classroom workspace
+
+The latest interface removes Show work board and the separate live board entirely. Each student reply can contain its explanation, worked calculation, rendered LaTeX equation, and drawn diagram in one scrolling chat. The bottom input and existing palette remain. Recalculations add new replies rather than replacing what earlier messages displayed. A small pencil button opens teacher drawing/annotation tools inline at the end of the chat; closing the editor restores focus to the input, and sending saves the annotations with the response. No panel opens automatically when student work changes.
+
+Conversation events now store the complete validated work snapshot, including its explanation, equation, values, units, and drawing. The public discussion returns only snapshots for visible step IDs. Older calculations are recovered from saved step history only when every revision has an exact chronological event match; ambiguous histories are left unassociated rather than displaying a later calculation beside an earlier reply. The original authored guide stays in Problems and saved source data. This uses existing JSON event/history storage and requires no database migration. The earlier expandable-board layout described below is historical.
+
+## Shared drawing paper — October 7, 2026
+
+The classroom fills the available viewport. Conversation scrolls independently and a single transparent input stays at the bottom, with Enter to send and Shift+Enter for a newline. There is no outer composer card. The expandable board sits above conversation and opens when a student returns revised work. It starts with blank paper rather than the authored reference steps.
+
+Student replies can include written reasoning, a LaTeX equation, and a vector drawing in `work.drawing`. The server requests actual geometry through strict structured output: lines, arrows, circles, labels, and sampled paths on a 1000 × 600 paper. Four fixed colors, bounded coordinates, a maximum of 30 marks, and 80 points per path keep the payload constrained. The renderer builds SVG from validated primitives; the model cannot supply HTML, SVG source, scripts, URLs, or external assets. Drawings explain directions, axes, units, and calculated graphs. Teacher corrections can generate replacement geometry. This adds no model tools or code execution; the student's structured reply contains the drawing instructions.
+
+Teachers can annotate the same paper with a pen, arrows, and text labels. Undo and Clear affect teacher marks only. A label can be placed with the keyboard using the add button. On message submission, teacher geometry is forwarded as untrusted classroom context and saved alongside the student's response. Student diagrams appear in the chat and on the current board. Draft revisions, diagram snapshots, and submitted annotations survive refresh, retain prior versions, and use existing ownership, atomic mutation, revision, and idempotency protections. Unsubmitted annotations stay local to the current view. No database migration is needed.
+
+Live output uses a required nullable drawing field and a 3500-token response cap. Equations retain the existing syntax validation and drafts remain subject to independent physics checks. Offline mode explicitly returns demo sketches from public problem data; it does not substitute a canned diagram after a live failure.
 
 Settings accepts a personal OpenAI API key and model. The secret is encrypted with AES-256-GCM and owner-bound authenticated data, using a key derived from the server secret (`AI_KEY_ENCRYPTION_SECRET` if configured, otherwise `GUEST_COOKIE_SECRET`). Only ciphertext is persisted in `AiConnection`; its guest/user foreign keys cascade on identity deletion. Status, config, sessions, logs, and history exports never include the key. The password field is cleared after save and never repopulated. There is no localStorage/sessionStorage credential copy. Disconnect deletes the personal connection.
 

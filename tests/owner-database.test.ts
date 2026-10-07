@@ -18,6 +18,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('owner API with authenticated id
   const review=await handle(req(`owner/problems/${problem.id}`,{data,status:'review'}));expect(review.status).toBe(201);const version=(await review.json()).data;expect(version.version).toBe(2);
   const published=await handle(req(`owner/problems/${problem.id}/publish`,{versionId:version.id,reviewNote:'Reviewed numeric target, units, symbolic steps, and permissions.',confirmReviewed:true}));expect(published.status).toBe(200);
   const publicResponse=await handle(new Request(`http://127.0.0.1:3000/api/problems/${problem.id}`));const dto=(await publicResponse.json()).data;expect(dto.kind).toBe('textbook');expect(dto.source).toContain('Test-only');expect(dto.reference).toBeUndefined();
+  const sessionsBefore=await db.session.count();
+  const referenceResponse=await handle(new Request(`http://127.0.0.1:3000/api/problems/${problem.id}/reference`));expect(referenceResponse.status).toBe(200);const reference=(await referenceResponse.json()).data;expect(reference.steps).toEqual(data.reference);expect(reference.problem.id).toBe(problem.id);expect(reference.problem.templates).toBeUndefined();expect(reference.problem.target).toBeUndefined();expect(reference.problem.reviewNotes).toBeUndefined();expect(Object.keys(reference).sort()).toEqual(['problem','steps']);expect(await db.session.count()).toBe(sessionsBefore);
+  const invalid=await handle(new Request(`http://127.0.0.1:3000/api/problems/${problem.id}/other`));expect(invalid.status).toBe(404);
+  const demo=await handle(new Request('http://127.0.0.1:3000/api/problems/water-in-the-bucket/reference'));expect(demo.status).toBe(404);
   await expect(db.problemVersion.update({where:{id:version.id},data:{data}})).rejects.toThrow('immutable');
   const edited=await handle(req(`owner/problems/${problem.id}`,{data:{...data,title:'Another independent draft'},status:'draft'}));expect((await edited.json()).data.version).toBe(3);const old=await db.problemVersion.findUniqueOrThrow({where:{id:version.id}});expect((old.data as {title:string}).title).toBe(data.title);
  });

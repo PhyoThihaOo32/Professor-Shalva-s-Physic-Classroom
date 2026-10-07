@@ -51,7 +51,7 @@ test('original lo-fi music produces audio and shared controls pause, mute, persi
   await expect.poll(() => outputPeak(page)).toBeGreaterThan(.0001);
   await player.getByLabel('Audio volume').fill('0.18');
   await expect(page.locator('.sidebar').getByLabel('Audio volume')).toHaveValue('0.18');
-  await page.getByRole('navigation', {name: 'Main navigation'}).getByRole('link', {name: 'Library', exact: true}).click();
+  await page.getByRole('navigation', {name: 'Main navigation'}).getByRole('link', {name: 'Problems', exact: true}).click();
   await expect(page.locator('.sidebar').getByRole('button', {name: 'Pause audio', exact: true})).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as {audioProbes: unknown[]}).audioProbes.length)).toBe(1);
   await page.getByRole('button', {name: 'Fold sidebar', exact: true}).click();

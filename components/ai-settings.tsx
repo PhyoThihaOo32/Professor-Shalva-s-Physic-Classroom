@@ -19,7 +19,7 @@ export function AiSettings(){
   try{if(kind==='test'){const result=await api<{message:string}>('ai-connection/test',{method:'POST'});setMessage(result.message);}else{setConnection(await api<Connection>('ai-connection',{method:'DELETE'}));setApiKey('');setMessage('Your personal key was removed.');}}
   catch(e){setError((e as Error).message);}finally{setBusy(false);}
  }
- return <section className="paper settings-section ai-settings" aria-labelledby="ai-settings-title"><KeyRound size={25}/><div><h2 id="ai-settings-title">Live student conversations</h2><p>Connect OpenAI so your student can answer your questions, recalculate, and revise their work. Authored steps are available in Library → Manual.</p>
+ return <section className="paper settings-section ai-settings" aria-labelledby="ai-settings-title"><KeyRound size={25}/><div><h2 id="ai-settings-title">Live student conversations</h2><p>Connect OpenAI so your student can answer your questions, recalculate, and revise their work. Questions, diagrams, and worked solutions are available in Problems.</p>
   <p className="tiny" role="status">{connection?connection.configured?`${connection.personal?'Your key is saved':'Server connection available'} · ${connection.model}`:'Demo mode · no API key connected':'Checking connection…'}</p>
   <form onSubmit={e=>{e.preventDefault();void save();}}>
    <label className="field-label" htmlFor="openai-key">OpenAI API key</label><input id="openai-key" type="password" autoComplete="off" spellCheck={false} placeholder={connection?.personal?'Paste a replacement key':'sk-…'} value={apiKey} onChange={e=>setApiKey(e.target.value)} maxLength={500} required disabled={busy||!connection}/>
