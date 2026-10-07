@@ -801,14 +801,25 @@ footer{gap:16px;flex-wrap:wrap}
 /* A compact station embedded in navigation; the offline track stays available. */
 .audio-row{flex-wrap:wrap;gap:8px}
 .audio-row input{flex:1;min-width:45px;width:auto}
-.audio-row .music-source{width:auto;min-height:30px;max-width:100%;padding:3px 7px;border:0;background:transparent;color:var(--lofi-lavender);font-size:11px;line-height:1.5;color-scheme:dark;margin-left:auto;cursor:pointer}
-.audio-row .music-source option{background:#434766;color:#f1ecfa}
+.audio-row button{border:0;box-shadow:none;transition:color .15s,background .15s}
+.audio-row button:hover{background:#ffffff0a;color:#f3edff}
+.audio-row button:focus{outline:none}
+.audio-row button:focus-visible{outline:1px solid var(--lofi-mint);outline-offset:2px}
+.audio-row .audio-play,.audio-playing .audio-play{background:none;box-shadow:none}
+.audio-row .audio-play:hover{background:#ffffff0a}
+.audio-row .music-source{display:flex;align-items:center;gap:2px;max-width:100%;margin-left:auto}
+.audio-row .music-source button{width:auto;height:30px;min-width:0;padding:0 6px;border-radius:5px;background:none;color:#b5bfd1;font-size:11px;font-weight:500;line-height:1.5}
+.audio-row .music-source button:hover{color:#f3edff;background:none}
+.audio-row .music-source button[aria-pressed=true]{color:var(--lofi-mint);background:#b4e8dd0c}
 .audio-compact .audio-row{flex-wrap:nowrap}
-.audio-compact .music-source{font-size:10px;padding:2px;width:62px}
-.sidebar-folded .sidebar .audio-row .music-source{width:100%;font-size:9px;padding:2px 0;margin-left:0}
+.audio-compact .audio-row .music-source button{width:auto;min-width:0;height:28px;font-size:10px;padding:0 4px}
+.sidebar-folded .sidebar .audio-row .music-source{width:100%;flex-direction:column;margin-left:0;gap:0}
+.sidebar-folded .sidebar .audio-row .music-source button{font-size:9px;padding:0 3px;height:26px}
 .sidebar-music .audio{padding-bottom:12px}
 .cafe-radio{width:100%;height:144px;overflow:hidden;border-radius:8px;background:#373c54;margin-bottom:16px}
 .cafe-radio iframe{display:block;width:100%;height:100%;border:0;background:#242537}
+.cafe-radio iframe:focus{outline:none}
+.cafe-radio iframe:focus-visible{outline:1px solid var(--lofi-mint);outline-offset:-1px}
 /* Keep the native transport, trimming the crowded social header in the sidebar. */
 .sidebar-music .cafe-radio iframe{height:calc(100% + 36px);margin-top:-36px}
 .sidebar-folded .sidebar .cafe-radio{display:none}
@@ -827,7 +838,7 @@ footer{gap:16px;flex-wrap:wrap}
  .sidebar-music .audio-label{display:flex}
  .sidebar .guest-label{display:none}
  .app-shell:has(.sidebar .cafe-radio):not(.sidebar-folded) .main-shell:has(.conversation-classroom)>main{height:calc(100dvh - 254px)}
- .audio-compact .audio-row button{width:27px;min-width:27px}.audio-compact .music-source{width:55px}.topbar-actions{gap:8px}.topbar .mode-badge{gap:6px}
+ .audio-compact .audio-row button{width:27px;min-width:27px}.topbar-actions{gap:8px}.topbar .mode-badge{gap:6px}
  .onboarding-meta:has(.cafe-radio){align-items:flex-start}
  .onboarding-music:has(.cafe-radio){flex-direction:column;align-items:flex-end;gap:8px}
  .onboarding-music .cafe-radio{width:140px;height:110px}

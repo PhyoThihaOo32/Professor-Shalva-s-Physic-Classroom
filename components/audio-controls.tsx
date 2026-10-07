@@ -2,7 +2,7 @@
 import {useEffect, useSyncExternalStore} from 'react';
 import {Volume2, VolumeX, Pause, Play, Radio, Square} from 'lucide-react';
 import {getAudioState, getServerAudioState, loadAudioPreferences, setAudioVolume, studyTrack, subscribeAudio, toggleAudio, toggleAudioMute} from '@/lib/study-audio';
-import {getRadioState, getServerRadioState, loadRadioPreferences, setMusicSource, subscribeRadio, toggleCafe, type MusicSource} from '@/lib/study-radio';
+import {getRadioState, getServerRadioState, loadRadioPreferences, setMusicSource, subscribeRadio, toggleCafe} from '@/lib/study-radio';
 
 export function AudioControls({compact = false}: {compact?: boolean}) {
   const {playing, pending, muted, volume, error} = useSyncExternalStore(subscribeAudio, getAudioState, getServerAudioState);
@@ -18,7 +18,10 @@ export function AudioControls({compact = false}: {compact?: boolean}) {
       <button aria-label={muted ? 'Unmute audio' : 'Mute audio'} title={muted ? 'Unmute audio' : 'Mute audio'} aria-pressed={muted} onClick={toggleAudioMute}>{muted ? <VolumeX size={15}/> : <Volume2 size={15}/>}</button>
       <input aria-label="Audio volume" type="range" min="0" max="1" step="0.01" value={volume} onChange={e => setAudioVolume(Number(e.target.value))}/>
       </> : <button className="audio-play cafe-launcher" aria-label={radio.open ? 'Stop radio' : 'Open radio'} title={radio.open ? 'Stop lofi.cafe' : 'Listen to lofi.cafe'} aria-expanded={radio.open} disabled={radio.pending || pending} onClick={() => void toggleCafe()}>{radio.open ? <Square size={14}/> : <Play size={15}/>}</button>}
-      <select className="music-source" aria-label="Music source" value={offline ? 'offline' : 'cafe'} disabled={pending || radio.pending} onChange={e => void setMusicSource(e.target.value as MusicSource)}><option value="cafe" disabled={!radio.online}>Radio</option><option value="offline">Offline</option></select>
+      <div className="music-source" role="group" aria-label="Music source">
+        <button type="button" aria-pressed={!offline} disabled={!radio.online || pending || radio.pending} onClick={() => {if (offline) void setMusicSource('cafe');}}>Radio</button>
+        <button type="button" aria-pressed={offline} disabled={pending || radio.pending} onClick={() => {if (!offline) void setMusicSource('offline');}}>Offline</button>
+      </div>
     </div>
     {offline && error && <p role="status" className="tiny audio-error">{error}</p>}
   </div>;
