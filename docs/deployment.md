@@ -8,7 +8,7 @@ The separate Neon Free project is `divine-salad-90921214`, with production branc
 
 Production environment variables are configured in Vercel. `DATABASE_URL`, `DIRECT_DATABASE_URL`, `GUEST_COOKIE_SECRET`, `AUTH_SECRET`, and `AI_KEY_ENCRYPTION_SECRET` are sensitive values. `APP_ORIGIN` and `AUTH_URL` match the production HTTPS domain. `COOKIE_SECURE=true`; `ALLOW_LIVE_AI=false` means each teacher connects a personal API key in Settings. No shared OpenAI key is deployed. Production guest sessions and keys belong to the deployed origin.
 
-`vercel.json` selects Next.js and the `iad1` function region. Its build applies committed migrations, seeds published reference content idempotently, and builds the app. The Node API route has a 60-second platform limit, covering the shorter application deadlines. `.vercelignore` excludes local configuration, generated dependencies, caches, tests, and documentation from CLI uploads. Secrets and the local Vercel link are also excluded from Git.
+`vercel.json` selects Next.js and the `iad1` function region. Its build applies committed migrations, seeds published reference content idempotently, and builds the app. The Node API route has a 60-second platform limit, covering the shorter application deadlines. `.vercelignore` excludes local configuration, generated dependencies, caches, tests, the evaluation script that imports those test fixtures, and documentation from CLI uploads. Secrets and the local Vercel link are also excluded from Git.
 
 ## Release checks
 
