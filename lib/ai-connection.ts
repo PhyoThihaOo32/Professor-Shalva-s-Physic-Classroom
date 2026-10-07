@@ -24,7 +24,7 @@ function decrypt(encrypted:string,owner:string){
   const [iv,tag,payload]=encrypted.split('.').map(s=>Buffer.from(s,'base64url'));
   const cipher=createDecipheriv('aes-256-gcm',encryptionKey(),iv);cipher.setAAD(Buffer.from(owner));cipher.setAuthTag(tag);
   return Buffer.concat([cipher.update(payload),cipher.final()]).toString('utf8');
- }catch{throw new AppError('AI_KEY_UNAVAILABLE','The saved key cannot be opened. Reconnect it in Settings.',503);}
+ }catch{throw new AppError('AI_KEY_UNAVAILABLE','The saved API connection cannot be opened.',503);}
 }
 const where=(who:Identity)=>who.kind==='guest'?{guestId:who.id}:{userId:who.id};
 export async function saveConnection(input:z.infer<typeof connectionSchema>,who:Identity){
@@ -52,6 +52,6 @@ export async function testConnection(who:Identity){
   return {message:'Key and model access confirmed. Return to the classroom to start talking.'};
  }catch(error){
   const status=(error as {status?:number}).status;
-  throw new AppError('AI_CONNECTION',status===401?'OpenAI did not accept this key. Replace it in Settings.':status===404?'This model is unavailable to your key. Choose another model.':status===429?'OpenAI reported a rate or usage limit. Check your API account.':'OpenAI could not verify the connection. Check the key, model access, and network.',400);
+  throw new AppError('AI_CONNECTION',status===401?'OpenAI did not accept this API key.':status===404?'This model is unavailable to your key. Choose another model.':status===429?'OpenAI reported a rate or usage limit. Check your API account.':'OpenAI could not verify the connection. Check the key, model access, and network.',400);
  }
 }
