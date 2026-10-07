@@ -1,6 +1,6 @@
 # Verification record
 
-Actual local verification on October 6, 2026, on macOS with Node 22.22.3 and a running PostgreSQL installation. These results apply to the delivered source and pinned lockfile. No external deployment or paid OpenAI calls were made.
+This record starts with local verification on October 6, 2026, on macOS with Node 22.22.3 and a running PostgreSQL installation. Later dated sections record subsequent changes, authorized character trials, and the October 7 Vercel production release. The initial baseline made no external deployment or paid OpenAI calls.
 
 | Check | Actual result |
 | --- | --- |
@@ -195,4 +195,12 @@ Added one small notebook icon at the top right of the Problems shelf. It opens a
 
 All **136 unit/database tests** and **29 browser scenarios** passed. Strict TypeScript, warning-free lint, production build, and whitespace checks passed. The guide test verifies the single icon, keyboard navigation, student-preserving return link, nine reminders, desktop GIF loading, phone still-image loading, stable palette, refresh, no horizontal overflow, and no classroom mutations. Provider tests verify that each distinct character receives the guide without being instructed to automatically complete it. Captures: `problems-guide-icon.png`, `problem-solving-guide.png`, and `problem-solving-guide-mobile.png`. No paid model calls were made.
 
-Connected the user’s Vercel workspace, created a separate project and a Neon Free database, configured fresh protected production secrets, and applied all four migrations and the reference seed. `vercel.json` declares the Next.js build, migrations and idempotent seed; Prisma uses the unpooled connection for migrations and the pooled runtime connection for queries. Production smoke-test results will follow the successful deployment.
+Connected the user’s Vercel workspace, created a separate project and a Neon Free database, configured fresh protected production secrets, and applied all four migrations and the reference seed. `vercel.json` declares the Next.js build, migrations and idempotent seed; Prisma uses the unpooled connection for migrations and the pooled runtime connection for queries.
+
+## Public Vercel release — October 7, 2026
+
+Published commit `f2d2d0285c390310ff6adc479bb1e8e4bb40d57f` at [Professor Shalva’s Physic Classroom](https://professor-shalvas-physic-classroom.vercel.app). Vercel deployment `dpl_5DMNp1FkzdeJ4KHNdXXwTRTi6hQn` reached **READY**. The first upload failed because `scripts/evaluate.ts` imported excluded test fixtures; the upload rules now exclude the evaluation harness too. A fresh build with the deployment file set passed before the successful retry. Build-time migrations and the idempotent seed passed remotely. The Vercel project is linked to the GitHub repository for future pushes.
+
+The actual public-domain browser smoke passed onboarding, all three independent empty classrooms, ownership denial, foreign-origin write rejection, Secure/HttpOnly guest cookies, nine read-only references, diagram and next-step rendering, the single guide icon, all nine reminders, animated GIF loading, reduced-motion still loading, desktop/phone palette and overflow, refresh, navigation recovery, blank personal-key settings, music playback controls, and sidebar folding. Missing-key submissions preserve teacher input and create no canned student reply. **No browser errors and no paid OpenAI calls** occurred in this release check. The isolated smoke guest’s three rooms were deleted afterward; no user history or credentials were touched.
+
+The successful local suite remains **136 unit/database tests and 29 browser scenarios**. The public smoke verifies deployed transport and storage without claiming paid model quality. New production visitors connect their own API key in Settings. Results: `production-smoke.json`. Visually reviewed captures: `production-problem-guide.png` and `production-problem-guide-mobile.png`.

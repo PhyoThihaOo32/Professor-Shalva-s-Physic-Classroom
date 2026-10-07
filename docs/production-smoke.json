@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-07T18:38:59.692Z",
+  "baseURL": "https://professor-shalvas-physic-classroom.vercel.app",
+  "checks": [
+    "Public onboarding, empty free-question classroom, secure guest ownership",
+    "Cross-guest reads and foreign-origin writes rejected",
+    "Single guide icon, nine reminders, keyboard navigation, GIF, reduced-motion still, palette, phone layout, refresh",
+    "Reference diagram and one-at-a-time solutions; same classroom recovered after navigation and refresh",
+    "All three student rooms retain input and save no canned replies when API key is missing",
+    "Fresh personal connection settings, music playback controls, foldable sidebar, no browser errors"
+  ],
+  "pageErrors": [],
+  "paidOpenAICalls": 0,
+  "isolatedGuestHistoryDeleted": true
+}

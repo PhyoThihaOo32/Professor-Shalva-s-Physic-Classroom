@@ -16,4 +16,4 @@ Before the first production publish, strict TypeScript, warning-free ESLint, all
 
 After publishing, check the guide, onboarding, reference diagrams, settings, and creation/recovery of an empty classroom at the canonical domain. Confirm secure cookies, rejection of foreign-origin writes, and no canned reply when the teacher has no key. A broken database/API flow or failed classroom recovery should block release. If a later deployment regresses these flows, roll back to the previous compatible deployment while retaining database contents; do not reset the database to roll back code. Keep schema changes compatible with the chosen rollback version.
 
-The initial production smoke-test outcome is recorded in [verification](verification.md).
+The initial production release reached READY and passed its public-domain smoke checks. The outcome and screenshots are recorded in [verification](verification.md). The GitHub repository is linked to the Vercel project; pushes to `main` deploy production. Each teacher must connect a personal API key in Settings on the published site.
