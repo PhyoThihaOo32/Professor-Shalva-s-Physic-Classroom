@@ -111,6 +111,60 @@ async function radioTime(page: import('@playwright/test').Page) {
   return page.locator('audio[data-study-radio]').evaluate((element: HTMLAudioElement) => element.currentTime);
 }
 
+for (const source of ['Radio', 'Offline'] as const) {
+  test(`${source} music continues through Welcome, role, student, and classroom navigation`, async ({page}) => {
+    const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+    let streamLoads = 0;
+    await page.route(stationStream, route => {streamLoads++; return route.fulfill({contentType: 'audio/wav', body: radioFixture()});});
+    // Isolate music/navigation from classroom storage and paid model requests.
+    await page.route('**/api/classrooms', route => route.fulfill({json: {data: {
+      id: 'entry-music-test', kind: 'open-classroom', personaId: 'bart-v1', revision: 0, state: 'active', discussion: [],
+    }}}));
+    await page.route('**/api/ai-connection', route => route.fulfill({json: {data: {configured: false}}}));
+    await page.setViewportSize(source === 'Radio' ? {width: 390, height: 844} : {width: 1280, height: 900});
+    await page.goto('/');
+    const player = page.locator('.onboarding-music');
+    await player.getByRole('button', {name: source, exact: true}).click();
+    const playName = source === 'Radio' ? 'Play radio' : 'Play audio';
+    const pauseName = source === 'Radio' ? 'Pause radio' : 'Pause audio';
+    await player.getByRole('button', {name: playName, exact: true}).click();
+    const transport = page.locator('audio[data-study-radio]');
+    await transport.evaluate(element => element.setAttribute('data-playback-instance', 'welcome'));
+    let elapsed = 0;
+    async function expectContinuousPlayback() {
+      await expect(page.getByRole('button', {name: pauseName, exact: true}).filter({visible: true})).toBeVisible();
+      await expect(transport).toHaveCount(1);
+      await expect(transport).toHaveAttribute('data-playback-instance', 'welcome');
+      if (source === 'Radio') {
+        await expect.poll(() => radioTime(page)).toBeGreaterThan(elapsed);
+        elapsed = await radioTime(page);
+        expect(streamLoads).toBe(1);
+        expect(await transport.evaluate((element: HTMLAudioElement) => element.paused)).toBe(false);
+      } else {
+        await expect.poll(() => outputPeak(page)).toBeGreaterThan(.0001);
+        expect(await page.evaluate(() => (window as unknown as {audioProbes: AudioContext[]}).audioProbes.map(probe => probe.state))).toEqual(['running']);
+      }
+    }
+    await expectContinuousPlayback();
+    await page.getByRole('link', {name: 'Get started'}).click();
+    await expect(page.getByRole('heading', {name: 'How will you learn?'})).toBeVisible();
+    await expectContinuousPlayback();
+    await page.getByRole('link', {name: /Be the teacher/}).click();
+    await expect(page.getByRole('heading', {name: 'Who’s joining you?'})).toBeVisible();
+    await expectContinuousPlayback();
+    await page.getByRole('button', {name: /Bart/}).click();
+    await page.getByRole('link', {name: 'Enter classroom'}).click();
+    await expect(page.getByRole('heading', {name: 'Bart’s classroom', exact: true})).toBeVisible();
+    await expectContinuousPlayback();
+    // Returning to Welcome also preserves the same playing instance.
+    await page.getByRole('link', {name: 'Professor Shalva’s Physic Classroom home', exact: true}).click();
+    await expect(page.getByRole('link', {name: 'Get started'})).toBeVisible();
+    await expectContinuousPlayback();
+    await page.locator('.onboarding-music').getByRole('button', {name: pauseName, exact: true}).click();
+    expect(errors).toEqual([]);
+  });
+}
+
 test('audio-only radio decodes music, shares volume, survives navigation and folding, and keeps phones compact', async ({page, context}) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   let loads = 0;
