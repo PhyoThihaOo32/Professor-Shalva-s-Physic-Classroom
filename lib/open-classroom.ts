@@ -75,6 +75,8 @@ export async function messageOpenRoom(id:string,input:z.infer<typeof openMessage
  }catch(error){
   await db.operation.updateMany({where:{sessionId:id,key:input.idempotencyKey,status:'pending'},data:{status:'failed'}});
   if(error instanceof AppError)throw error;
+  const providerStatus=(error as {status?:unknown}|null)?.status;
+  console.error(JSON.stringify({event:'student-conversation-failed',error:error instanceof Error?error.name:'unknown',...(typeof providerStatus==='number'?{status:providerStatus}:{})}));
   throw new AppError('PROVIDER_FAILURE','Your student could not finish that reply. Your conversation is saved; retry the message.',503);
  }
 }
