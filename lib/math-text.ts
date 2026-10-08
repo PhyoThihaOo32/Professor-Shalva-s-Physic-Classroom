@@ -1,6 +1,14 @@
 // Presentation only: preserve the student's arithmetic while making notation readable.
 export type MathPart={kind:'text';value:string}|{kind:'math';value:string;block:boolean};
 const rawNotation=/\\[a-zA-Z]+|\\?[_^](?:\{|[a-zA-Z0-9])/;
+const mathWords=new Set('sin cos tan cot sec csc arcsin arccos arctan sinh cosh tanh log exp lim max min sup inf det gcd mod lcm grad div curl deg rad mol min rpm kg km hz khz mhz pa kpa mpa atm ev kev mev gev'.split(' '));
+export function isProseMath(source:string):boolean {
+ // English outside math labels would be typeset as individual, unspaced variables.
+ // Protect units, named subscripts, and text labels before looking for prose.
+ const bare=source.replace(/\\(?:text|mathrm|operatorname|mathbf|mathit|mathsf|mathtt|begin|end)\s*\{(?:[^{}]|\{[^{}]*\})*\}|[_^]\s*\{(?:[^{}]|\{[^{}]*\})*\}/g,' ')
+  .replace(/\\[A-Za-z]+|[_^][A-Za-z]+/g,' ');
+ return (bare.match(/\b[A-Za-z]{3,}\b/g)??[]).some(word=>!mathWords.has(word.toLowerCase()));
+}
 export function plainMath(text:string):string {
  const symbols:Record<string,string>={times:'×',cdot:'·',div:'÷',approx:'≈',leq:'≤',geq:'≥',neq:'≠',pm:'±',Delta:'Δ',theta:'θ',pi:'π',alpha:'α',beta:'β',omega:'ω',infty:'∞'};
  const group=(source:string,start:number):[string,number]=>{if(source[start]!=='{')return ['',start];let depth=1,i=start+1;for(;i<source.length&&depth;i++){if(source[i]==='{')depth++;else if(source[i]==='}')depth--;}return [source.slice(start+1,depth?i:i-1),i];};
@@ -47,7 +55,9 @@ export function mathParts(text:string):MathPart[]{
  for(const match of text.matchAll(pattern)){
   const index=match.index!;parts.push(...rawParts(text.slice(cursor,index)));
   const value=match[1]??match[2]??match[3]??match[4]??match[5];
-  if(match[5]&&(!/[=+*/_^\\]|^[A-Za-z]$/.test(value)||/^\d+(?:[.,]\d+)?\s+(?:and|or|to)\b/.test(value)))parts.push({kind:'text',value:match[0]});
+  if(match[5]&&/^\d+(?:[.,]\d+)?\s+(?:and|or|to)\b/.test(value))parts.push({kind:'text',value:match[0]});
+  else if(isProseMath(value))parts.push(...rawParts(value.trim()));
+  else if(match[5]&&!/[=+*/_^\\]|^[A-Za-z]$/.test(value))parts.push({kind:'text',value:match[0]});
   else parts.push({kind:'math',value:value.trim().replace(/\\_/g,'_'),block:match[1]!==undefined||match[2]!==undefined||match[4]!==undefined});
   cursor=index+match[0].length;
  }

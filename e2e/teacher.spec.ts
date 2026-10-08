@@ -92,6 +92,31 @@ test('worked answers show distinct formulas, substitutions, results, and a shade
  await expect(reply.locator('.student-drawing')).toBeVisible();await expect(reply.locator('.diagram-legend')).toContainText('Velocity (m/s)');
  await reply.screenshot({path:'docs/worked-motion-answer-mobile.png'});
 });
+test('conceptual conclusions saved in math fields keep spaces and normal type on desktop and phone',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/classroom?student=bart-v1');await expect(page.getByLabel('Message your student')).toBeVisible();
+ const id=(await (await page.request.get('/api/progress')).json()).data.sessions[0].id;
+ const room=(await (await page.request.get(`/api/classrooms/${id}`)).json()).data;
+ const substitution='Weight on Earth and Moon differ because g is different.';
+ const result='Weights are not the same because gravitational acceleration differs.';
+ const work={id:'live',title:'Comparing weight on Earth and Moon',text:'Weight depends on gravity.',equation:'',value:null,unit:'',diagram:false,drawing:null,solution:[{title:'Weight depends on gravity',explanation:'Weight is the force due to gravity acting on mass.',formula:String.raw`W=m\times g`,substitution,result}]};
+ const draft={...room,discussion:[{id:'conceptual-example',kind:'message',stepId:'live',teacher:'Does the same person have the same weight on Earth and the Moon?',student:String.raw`Nah, gravity changes. \[Mass stays the same.\]`,createdAt:'2026-10-08T12:00:00Z',work,instinct:null,instinctStatus:'unavailable'}]};
+ await page.route(`**/api/classrooms/${id}`,route=>route.fulfill({json:{data:draft}}));
+ await page.route('**/api/classrooms',async route=>{if(route.request().method()==='POST')await route.fulfill({json:{data:draft}});else await route.continue();});
+ await page.setViewportSize({width:1280,height:900});await page.reload();
+ const reply=page.locator('.student-message').last();
+ await expect(reply.locator('.equation-prose')).toHaveCount(2);
+ await expect(reply.getByText(substitution,{exact:true})).toBeVisible();await expect(reply.getByText(result,{exact:true})).toBeVisible();
+ await expect(reply.locator('.equation-prose .katex')).toHaveCount(0);await expect(reply.locator('.katex')).toHaveCount(1);
+ await expect(reply.locator('p').first()).toHaveText('Nah, gravity changes. Mass stays the same.');
+ expect(await reply.innerText()).not.toMatch(/WeightonEarth|Weightsarenot|\\\[|\\\]|\\times/);
+ for(const text of await reply.locator('.equation-prose').all())expect(await text.evaluate(node=>getComputedStyle(node).fontStyle)).toBe('normal');
+ await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/readable-conclusions-desktop.png',fullPage:true});
+ await page.setViewportSize({width:390,height:844});await expect(reply.getByText(result,{exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/readable-conclusions-phone.png',fullPage:true});
+ await page.reload();await expect(page.locator('.equation-prose').last()).toHaveText(result);expect(errors).toEqual([]);
+});
 async function openOfflineChat(page:import('@playwright/test').Page,student:string){
  const response=await create(page.request,{problemId:'ch2-driving-home',personaId:student});expect(response.ok()).toBe(true);
  const session=(await response.json()).data;await page.goto(`/sessions/${session.id}`);await expect(page.getByLabel('Message your student')).toBeVisible();return session.id;

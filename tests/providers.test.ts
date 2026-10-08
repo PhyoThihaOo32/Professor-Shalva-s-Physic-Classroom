@@ -90,6 +90,7 @@ describe('student conversation boundary, stubbed transport',()=>{
   const input={text:'Explain step by step without a diagram.',step,persona:personas[1],history:[greeting],openClassroom:true};
   const reply=await liveProvider('test-model').converse(input,call);
   const developer=parse.mock.calls[0][0].input[1].content;expect(developer).toContain('You are a learner, not a tutor');expect(developer).toContain('Do not give the complete correct answer immediately');expect(developer).toContain('preserve what you learned');
+  expect(developer).toContain('never ordinary sentences');expect(developer).toContain('leave substitution and result empty');
   expect(parse.mock.calls[0][0].input[0].content).toContain('You are Bart Simpson');
   expect(developer).toContain('FIRST ATTEMPT');expect(developer).not.toContain('9. Check units again');
   parse.mockResolvedValueOnce({output_parsed:{signal:'check',focus:'assumptions'}});const cue=await liveProvider('test-model').instinct(input,reply,call);

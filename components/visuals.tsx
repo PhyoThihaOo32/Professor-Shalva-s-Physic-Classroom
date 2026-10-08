@@ -1,12 +1,13 @@
 'use client';
 import katex from 'katex';
-import {mathParts,plainMath,explanationLines,equationLines,equationFragments} from '@/lib/math-text';
+import {mathParts,plainMath,explanationLines,equationLines,equationFragments,isProseMath} from '@/lib/math-text';
 import Image from 'next/image';
 import type {CSSProperties} from 'react';
 import {findPersona} from '@/lib/domain';
 import type {ProblemData,Step} from '@/lib/domain';
 export function Equation({math,block=false}:{math:string;block?:boolean}){
  if(!math)return null;
+ if(isProseMath(math))return <span className={block?'equation-prose block':'equation-prose'}><MathText text={math}/></span>;
  const lines=block?equationLines(math):[math];
  return <span className={block?'equation block':'equation'}>{lines.map((line,index)=><span className="equation-line" key={index}>{equationFragments(line).map((fragment,i)=>{
   try{const html=katex.renderToString(fragment.replace(/\\_/g,'_'),{throwOnError:true,trust:false,strict:'ignore',output:'htmlAndMathml',displayMode:block});return <span className="equation-fragment" key={i} aria-label={plainMath(fragment)} dangerouslySetInnerHTML={{__html:html}}/>;}

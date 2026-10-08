@@ -1,7 +1,7 @@
 import {needsInstinctCheck,instinctNote,instinctLight,InstinctSchema} from '../lib/teacher-instinct';
 import {describe,it,expect} from 'vitest';
 import katex from 'katex';
-import {mathParts,plainMath,explanationLines,equationLines,equationFragments} from '../lib/math-text';
+import {mathParts,plainMath,explanationLines,equationLines,equationFragments,isProseMath} from '../lib/math-text';
 import {layoutDrawing} from '../lib/drawing-layout';
 import {DrawingSchema} from '../lib/drawing';
 import {StepSchema} from '../lib/schemas';
@@ -28,6 +28,22 @@ describe('readable saved calculations',()=>{
   expect(mathParts('```math\nx=2\n```')[0]).toEqual({kind:'math',value:'x=2',block:true});
   expect(mathParts('It costs $5 and $10.')).toEqual([{kind:'text',value:'It costs $5 and $10.'}]);
   expect(mathParts('A normal conversation.')).toEqual([{kind:'text',value:'A normal conversation.'}]);
+ });
+ it('keeps conceptual conclusions readable even when saved as math',()=>{
+  for(const sentence of ['Weight on Earth and Moon differ because g is different.','Weights are not the same because gravitational acceleration differs.']){
+   expect(isProseMath(sentence)).toBe(true);
+   for(const wrapped of [String.raw`\(${sentence}\)`,String.raw`\[${sentence}\]`,`$$${sentence}$$`,`$${sentence}$`,'```math\n'+sentence+'\n```'])expect(mathParts(wrapped)).toEqual([{kind:'text',value:sentence}]);
+  }
+  expect(mathParts(String.raw`Weight differs because \(g\) differs.`)).toEqual([{kind:'text',value:'Weight differs because '},{kind:'math',value:'g',block:false},{kind:'text',value:' differs.'}]);
+  const mixed=mathParts(String.raw`\[Use W=m\times g because gravity differs.\]`);
+  expect(mixed).toContainEqual({kind:'math',value:String.raw`W=m\times g`,block:false});
+  expect(mixed).toEqual([{kind:'text',value:'Use '},{kind:'math',value:String.raw`W=m\times g`,block:false},{kind:'text',value:' because gravity differs.'}]);
+ });
+ it('preserves equations with named subscripts, units, labels, and standard functions',()=>{
+  for(const math of [String.raw`W=m\times g`,String.raw`W_{Earth}=m g_{Earth}`,String.raw`a=2.5\,\mathrm{m/s^2}`,String.raw`F_{net}=ma\quad\text{net force}`,String.raw`x=\sin(\theta)`,String.raw`\begin{aligned}a&=1\\b&=2\end{aligned}`]){
+   expect(isProseMath(math)).toBe(false);
+   expect(mathParts(`\\[${math}\\]`)).toEqual([{kind:'math',value:math,block:true}]);
+  }
  });
  it('wraps long calculations between complete relations, preserving fractions',()=>{
   const math=String.raw`t_2=4.5-t_1=4.5-\frac{210}{95}\approx2.289474\,\mathrm{h}\approx137.368\,\mathrm{min}`;
