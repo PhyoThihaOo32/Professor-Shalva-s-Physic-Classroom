@@ -570,7 +570,10 @@ footer{gap:16px;flex-wrap:wrap}
 /* One quiet reference shelf, with the question and solution in the same view. */
 .reference-library h1 {font-size:32px;margin-bottom:28px;}
 .problems-page-heading {display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:28px;}
-.reference-library .problems-page-heading h1 {margin:0;}
+.reference-library .problems-page-heading h1 {margin:0 auto 0 0;}
+.problems-jamming {display:block;flex-shrink:0;width:140px;aspect-ratio:16/9;pointer-events:none;filter:invert(1);mix-blend-mode:screen;opacity:.78;mask-image:radial-gradient(ellipse at 50% 55%,#000 50%,transparent 98%),linear-gradient(#000 70%,transparent);mask-composite:intersect;}
+.problems-jamming img {display:block;width:100%;height:auto;}
+@media(max-width:600px){.problems-page-heading {gap:10px;}.problems-jamming {width:90px;}}
 .problem-guide-link {display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border-radius:50%;color:var(--lofi-lavender);background:var(--lofi-glass);transition:background .2s,color .2s;}
 .problem-guide-link:hover {background:var(--lofi-choice-hover);color:var(--lofi-mint);}
 .problem-guide {position:relative;isolation:isolate;overflow:hidden;min-height:calc(100svh - 120px);background:var(--lofi-canvas);}
