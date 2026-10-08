@@ -16,4 +16,10 @@ Before the first production publish, strict TypeScript, warning-free ESLint, all
 
 After publishing, check the guide, onboarding, reference diagrams, settings, and creation/recovery of an empty classroom at the canonical domain. Confirm secure cookies, rejection of foreign-origin writes, shared connection availability for a fresh guest, and no canned reply when a connection is unavailable. A broken database/API flow or failed classroom recovery should block release. If a later deployment regresses these flows, roll back to the previous compatible deployment while retaining database contents; do not reset the database to roll back code. Keep schema changes compatible with the chosen rollback version.
 
-The initial production release reached READY and passed its public-domain smoke checks. The outcome and screenshots are recorded in [verification](verification.md). The GitHub repository is linked to the Vercel project; pushes to `main` deploy production. Settings now contains only history and sound controls. Removing its key/model panel does not delete saved personal credentials.
+The initial production release reached READY and passed its public-domain smoke checks. The outcome and screenshots are recorded in [verification](verification.md). The GitHub repository is linked to the Vercel project; pushes to `main` deploy production. Settings now contains account, history, and sound controls. Removing its key/model panel does not delete saved personal credentials.
+
+## Account release
+
+The October 8 account migration is additive: it extends User records and creates AuthAccount with unique provider subjects. Vercel applies it before the build. Email/password sign-in uses the existing private `AUTH_SECRET` and canonical `AUTH_URL`; no OpenAI or encryption settings change. Google needs `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` in Production and the exact canonical `/api/auth/callback/google` redirect URI. Both are currently absent. Follow [account setup](accounts.md), then redeploy.
+
+The release passed 155 unit/database checks, 42 browser scenarios, strict types, lint, and the production build. Roll back to compatible commit `6f66c8a` if account separation or chat recovery fails; retain the additive migration and account data. No external on-call team or CI workflow is configured; verification was run locally on the production build.

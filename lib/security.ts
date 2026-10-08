@@ -14,7 +14,12 @@ export function verifyGuest(value:string):string|null{
  const expected=signGuest(parts[0],issued).split('.')[2];const a=Buffer.from(expected),b=Buffer.from(parts[2]);return a.length===b.length&&timingSafeEqual(a,b)?parts[0]:null;
 }
 export async function identity():Promise<Identity>{
- if(process.env.AUTH_GITHUB_ID&&process.env.AUTH_SECRET){const session=await auth();if(session?.ownerId&&session.ownerId===process.env.AUTH_OWNER_GITHUB_ID){const id=`github:${session.ownerId}`;await db.user.upsert({where:{id},create:{id,email:session.user?.email??`${id}@local.invalid`},update:{}});return {id,kind:'user',owner:true};}}
+ if(process.env.AUTH_SECRET){
+  const session=await auth(),owner=!!session?.ownerId&&session.ownerId===process.env.AUTH_OWNER_GITHUB_ID;
+  if(session?.user?.id&&await db.user.findUnique({where:{id:session.user.id},select:{id:true}}))return {id:session.user.id,kind:'user',owner};
+  const legacy=owner?`github:${session!.ownerId}`:null;
+  if(legacy&&await db.user.findUnique({where:{id:legacy},select:{id:true}}))return {id:legacy,kind:'user',owner:true};
+ }
  const jar=await cookies();const cookie=jar.get('chalklight_guest')?.value;let id=cookie?verifyGuest(cookie):null;
  if(id&&!await db.guestIdentity.findUnique({where:{id}}))id=null;
  if(!id){id=randomUUID();jar.set('chalklight_guest',signGuest(id),{httpOnly:true,sameSite:'lax',secure:process.env.COOKIE_SECURE==='true'||process.env.NODE_ENV==='production',path:'/',maxAge:lifetime});}

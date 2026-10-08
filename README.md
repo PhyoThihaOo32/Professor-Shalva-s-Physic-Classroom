@@ -52,6 +52,14 @@ The classroom has one unobtrusive input. Press Enter to send or Shift+Enter for 
 
 **Problems** holds read-only authored solutions. The live classroom resumes independently. Older Manual URLs redirect to the corresponding reference. Progress and Course notes routes redirect to Problems; their navigation sections are removed. Existing saved sessions and source records are preserved. Open conversations use the teacher’s first question, recent exchanges, and the student’s latest saved attempt, without an assigned reference problem. Legacy problem sessions retain their separate public problem context. Generated revisions preserve history, stay provisional and never assign their own grades. The original authored work stays out of the live chat. Ownership, revision/idempotency, deadlines and spending controls continue to protect messages and revisions.
 
+## Personal accounts
+
+Use **Sign in** from the welcome page or **Your account** in Settings. Create an account with a name, email, and password of at least 12 characters, or use Google when its OAuth client is configured. **My space** lists your recent conversations, reopens older chats, and starts a separate new conversation. Signing in on another device restores the same account history. Guest access remains available. The optional “Keep conversations from this browser” checkbox imports only the current signed guest identity; it also rebinds any encrypted personal connection without exposing its key. Signing out clears the displayed account history across open tabs.
+
+Accounts use Auth.js JWT sessions in HttpOnly, SameSite cookies, Secure in production. Passwords use salted scrypt hashes and bounded sign-up/sign-in attempts. Server ownership checks apply to chats, exports, deletion, and private connections. Google identities are stored by immutable provider subject; tokens are not persisted. Matching emails alone do not link a Google account to a password account: sign in with the password, then use **Connect Google** in Settings. Content-owner access remains restricted to the separately configured immutable GitHub owner ID.
+
+Configure `AUTH_SECRET` (32+ random characters), `AUTH_URL`, and `APP_ORIGIN` on the server. Google additionally requires `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`, with the exact callback URI `${AUTH_URL}/api/auth/callback/google`. See [account setup and verification](docs/accounts.md). Google is visibly unavailable until both credentials are present. Password reset and email verification are not included in this release; no email delivery service is configured.
+
 ## Add your textbook problems
 
 1. Set up an owner GitHub OAuth app. Set `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_URL`, `AUTH_SECRET`, and **`AUTH_OWNER_GITHUB_ID` to the immutable numeric GitHub account ID**, not the display name. Register `http://127.0.0.1:3000/api/auth/callback/github` as the local callback URL. Restart the server. Sign in from `/owner`. Only that authenticated ID is allowed; Teacher mode grants no editor permission.
@@ -100,7 +108,7 @@ DATABASE_URL="postgresql://YOUR_LOCAL_ROLE@localhost:5432/chalklight_test" npm r
 TEST_DATABASE_URL="postgresql://YOUR_LOCAL_ROLE@localhost:5432/chalklight_test" npm run test
 ```
 
-Playwright uses isolated guest identities against the locally configured app database and a server at port 3000. Its test deletion acts only on its own guest history. For deployment CI, run Playwright with a dedicated app/test database. See `docs/verification.md` for actual results, limitations, and remaining dependency advisories, and `docs/evaluation-mock.json` for every mock case.
+Playwright uses isolated identities against the locally configured app database and a production server at port 3100. Account tests create and clean up only their own uniquely named test accounts. Its test deletion acts only on its own guest history. For deployment CI, run Playwright with a dedicated app/test database. See `docs/verification.md` for actual results, limitations, and remaining dependency advisories, and `docs/evaluation-mock.json` for every mock case.
 
 ## Supplied course resources
 

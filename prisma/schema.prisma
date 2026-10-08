@@ -8,8 +8,24 @@ datasource db {
 model User {
  id String @id
  email String @unique
+ name String?
+ image String?
+ emailVerified DateTime?
+ passwordHash String?
+ createdAt DateTime @default(now())
+ accounts AuthAccount[]
  sessions Session[]
  aiConnection AiConnection?
+}
+model AuthAccount {
+ id String @id @default(cuid())
+ userId String
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ provider String
+ providerAccountId String
+ type String
+ @@unique([provider, providerAccountId])
+ @@index([userId])
 }
 model GuestIdentity {
  id String @id

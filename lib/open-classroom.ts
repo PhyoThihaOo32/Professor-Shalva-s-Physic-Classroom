@@ -13,7 +13,7 @@ import {resolveAi} from './ai-connection';
 import {liveProvider} from './providers';
 import {InstinctSchema,needsInstinctCheck,type TeacherInstinct} from './teacher-instinct';
 import {emptyStudentWork,type OpenClassroom,type OpenTurn} from './open-classroom-types';
-export const openSchema=z.object({personaId:z.enum(['bart-v1','spongebob-v1','stewie-v1']),idempotencyKey:z.string().min(8).max(100)}).strict();
+export const openSchema=z.object({personaId:z.enum(['bart-v1','spongebob-v1','stewie-v1']),idempotencyKey:z.string().min(8).max(100),fresh:z.boolean().optional()}).strict();
 export const openMessageSchema=z.object({revision:z.number().int().nonnegative(),idempotencyKey:z.string().min(8).max(100),text:z.string().trim().min(1).max(2000),drawing:DrawingSchema.optional()}).strict();
 const include={events:{where:{type:'open-message'},orderBy:[{createdAt:'asc' as const},{id:'asc' as const}],take:100}};
 async function loadRoom(id:string,who:Identity){const s=await db.session.findUnique({where:{id},include});assert(s&&owned(s,who)&&s.kind==='open-classroom','NOT_FOUND','Classroom not found.',404);return s;}
@@ -34,9 +34,10 @@ export async function openRoom(input:z.infer<typeof openSchema>,who:Identity){
  const identity=who.kind==='guest'?{guestId:who.id}:{userId:who.id};
  const id=await db.$transaction(async tx=>{
   const lock=`open-room:${who.kind}:${who.id}:${input.personaId}`;await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${lock}))::text`;
-  const previous=await tx.session.findFirst({where:{...identity,kind:'open-classroom',personaVersionId:input.personaId,state:'teaching'},orderBy:{updatedAt:'desc'}});if(previous)return previous.id;
-  await incrementQuota(tx,`start:${who.kind}:${who.id}:${Math.floor(Date.now()/3600000)}`,configInt('SESSION_STARTS_PER_HOUR',10));
+  if(!input.fresh){const previous=await tx.session.findFirst({where:{...identity,kind:'open-classroom',personaVersionId:input.personaId,state:'teaching'},orderBy:{updatedAt:'desc'}});if(previous)return previous.id;}
   const id=createHash('sha256').update(`${lock}:${input.idempotencyKey}`).digest('hex').slice(0,28);
+  if(await tx.session.findUnique({where:{id},select:{id:true}}))return id;
+  await incrementQuota(tx,`start:${who.kind}:${who.id}:${Math.floor(Date.now()/3600000)}`,configInt('SESSION_STARTS_PER_HOUR',10));
   await tx.session.create({data:{id,...identity,kind:'open-classroom',problemVersionId:null,personaVersionId:input.personaId,rubricVersionId:'instructor-v1',promptVersion:CHAT_PROMPT_VERSION,provider:'live',difficulty:'guided',state:'teaching',revision:0}});
   return id;
  });return getOpenRoom(id,who);

@@ -10,6 +10,8 @@ import { AppError,assert } from './errors';
 import { personas,publicProblem } from './domain';
 import { createSchema,mutationSchema,createSession,getSession,mutateSession,json,loadSession,sessionDTO } from './sessions';
 import {connectionSchema,connectionStatus,saveConnection,removeConnection,testConnection} from './ai-connection';
+import {accountStatus,completeLogin,completeLoginSchema,resetGuestCookie,conversationHistory} from './account';
+import {registerAccount} from './auth-store';
 const contentInput=z.object({chapterId:z.string().max(100),data:ProblemSchema}).strict();
 async function readBody(request:Request){const raw=await request.text();assert(raw.length<=100000,'BODY','Request is too large.',413);return JSON.parse(raw) as unknown;}
 export async function handle(request:Request){
@@ -17,6 +19,8 @@ export async function handle(request:Request){
  const ok=(data:unknown,status=200)=>NextResponse.json({data,requestId},{status,headers:{'Cache-Control':'private, no-store','X-Request-ID':requestId}});
  try{
   if(method!=='GET')checkOrigin(request);
+  if(path[0]==='account'&&path[1]==='signup'&&path.length===2&&method==='POST')return ok(await registerAccount(await readBody(request),request),201);
+  if(path[0]==='account'&&path[1]==='reset-guest'&&path.length===2&&method==='POST')return ok(await resetGuestCookie());
   if(path[0]==='chapters'&&method==='GET')return ok(await db.chapter.findMany({select:{id:true,title:true,source:true,_count:{select:{problems:true}}}}));
   if(path[0]==='problems'&&method==='GET'){
    assert(path.length<=2||(path.length===3&&path[1]&&path[2]==='reference'),'NOT_FOUND','Route not found.',404);
@@ -25,6 +29,11 @@ export async function handle(request:Request){
    if(path[1]){assert(data.length,'NOT_FOUND','Published problem not found.',404);if(path[2]==='reference'){const problem=ProblemSchema.parse(versions[0].data);assert(problem.kind!=='original-demo','NOT_FOUND','Problem reference not found.',404);return ok({problem:data[0],steps:problem.reference});}return ok(data[0]);}return ok(data);
   }
   const who=await identity();
+  if(path[0]==='account'){
+   if(path.length===1&&method==='GET')return ok(await accountStatus(who));
+   if(path[1]==='complete'&&path.length===2&&method==='POST')return ok(await completeLogin(who,completeLoginSchema.parse(await readBody(request)).importGuest));
+   if(path[1]==='conversations'&&path.length===2&&method==='GET')return ok(await conversationHistory(who));
+  }
   if(path[0]==='config'&&method==='GET')return ok({personas,liveEnabled:(await connectionStatus(who)).configured,owner:who.owner,authenticationConfigured:!!process.env.AUTH_GITHUB_ID,identity:who.kind});
   if(path[0]==='ai-connection'){
    if(method==='GET'&&!path[1])return ok(await connectionStatus(who));

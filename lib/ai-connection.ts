@@ -3,6 +3,7 @@ import {createCipheriv,createDecipheriv,hkdfSync,randomBytes} from 'node:crypto'
 import OpenAI from 'openai';
 import {z} from 'zod';
 import {db} from './db';
+import type {Prisma} from './generated/prisma/client';
 import {type Identity} from './security';
 import {assert,AppError} from './errors';
 
@@ -37,6 +38,12 @@ export async function saveConnection(input:z.infer<typeof connectionSchema>,who:
  return connectionStatus(who);
 }
 export async function removeConnection(who:Identity){await db.aiConnection.deleteMany({where:where(who)});return connectionStatus(who);}
+export async function moveGuestConnection(tx:Prisma.TransactionClient,guestId:string,userId:string){
+ const saved=await tx.aiConnection.findUnique({where:{guestId}});
+ if(!saved||await tx.aiConnection.findUnique({where:{userId}}))return;
+ const encryptedKey=encrypt(decrypt(saved.encryptedKey,`guest:${guestId}`),`user:${userId}`);
+ await tx.aiConnection.update({where:{id:saved.id},data:{guestId:null,userId,encryptedKey}});
+}
 export async function connectionStatus(who:Identity){
  const saved=await db.aiConnection.findUnique({where:where(who),select:{model:true}});
  const shared=sharedConnection();
