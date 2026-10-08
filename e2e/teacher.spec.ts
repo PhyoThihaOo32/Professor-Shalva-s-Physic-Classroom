@@ -115,7 +115,9 @@ test('conceptual conclusions saved in math fields keep spaces and normal type on
  await page.setViewportSize({width:390,height:844});await expect(reply.getByText(result,{exact:true})).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/readable-conclusions-phone.png',fullPage:true});
- await page.reload();await expect(page.locator('.equation-prose').last()).toHaveText(result);expect(errors).toEqual([]);
+ await page.reload();await expect(page.locator('.equation-prose').last()).toHaveText(result);
+ draft.discussion[0].work.solution[0].substitution=String.raw`Weight = m\times g`;
+ await page.reload();await expect(page.locator('.equation-prose').first()).toHaveText('Weight = m× g');expect(errors).toEqual([]);
 });
 async function openOfflineChat(page:import('@playwright/test').Page,student:string){
  const response=await create(page.request,{problemId:'ch2-driving-home',personaId:student});expect(response.ok()).toBe(true);

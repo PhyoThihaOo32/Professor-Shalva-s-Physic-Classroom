@@ -38,6 +38,7 @@ describe('readable saved calculations',()=>{
   const mixed=mathParts(String.raw`\[Use W=m\times g because gravity differs.\]`);
   expect(mixed).toContainEqual({kind:'math',value:String.raw`W=m\times g`,block:false});
   expect(mixed).toEqual([{kind:'text',value:'Use '},{kind:'math',value:String.raw`W=m\times g`,block:false},{kind:'text',value:' because gravity differs.'}]);
+  expect(mathParts(String.raw`\[Weight = m\times g\]`)).toEqual([{kind:'text',value:'Weight = m× g'}]);
  });
  it('preserves equations with named subscripts, units, labels, and standard functions',()=>{
   for(const math of [String.raw`W=m\times g`,String.raw`W_{Earth}=m g_{Earth}`,String.raw`a=2.5\,\mathrm{m/s^2}`,String.raw`F_{net}=ma\quad\text{net force}`,String.raw`x=\sin(\theta)`,String.raw`\begin{aligned}a&=1\\b&=2\end{aligned}`]){

@@ -46,6 +46,7 @@ function rawParts(text:string):MathPart[]{
   }
   const suffix=sentence.slice(end);let math=sentence.slice(start,end).trim().replace(/\\_/g,'_');let punctuation='';
   if(/[.!?]$/.test(math)){punctuation=math.at(-1)!;math=math.slice(0,-1);}
+  if(isProseMath(math))return [{kind:'text',value:plainMath(sentence)}];
   return [{kind:'text',value:sentence.slice(0,start)},{kind:'math',value:math,block:false},{kind:'text',value:punctuation+suffix}];
  });
 }
