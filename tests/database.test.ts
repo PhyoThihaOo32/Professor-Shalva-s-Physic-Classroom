@@ -36,6 +36,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
   parse.mockResolvedValueOnce({output_parsed:{message:'For two approaching trains, I should add the speeds—310 km/h.',work:null}}).mockResolvedValueOnce({output_parsed:{signal:'clear',focus:'none'}});
   const next=await messageOpenRoom(room.id,{revision:corrected.session.revision,idempotencyKey:crypto.randomUUID(),text:'New question: two trains each travel at 155 km/h toward each other. What is their closing speed?'},owner);
   expect(next.session.discussion.at(-1)?.teacher).toContain('New question');expect((await getOpenRoom(room.id,owner)).discussion).toEqual(next.session.discussion);expect(next.session).not.toHaveProperty('problem');expect(next.session).not.toHaveProperty('score');
+  parse.mockResolvedValueOnce({output_parsed:{message:'Lisa is probably reading another book, teach.',work:null}}).mockResolvedValueOnce({output_parsed:{signal:'not-physics',focus:'none'}});
+  const social=await messageOpenRoom(room.id,{revision:next.session.revision,idempotencyKey:crypto.randomUUID(),text:'How is Lisa?'},owner);
+  expect(social.session.discussion.at(-1)?.instinct).toEqual({signal:'not-physics',focus:'none'});
+  expect((await getOpenRoom(room.id,owner)).discussion.at(-1)?.instinct?.signal).toBe('not-physics');
  });
  it('does not fake a response without a key, and preserves replies when the optional instinct check is unavailable',async()=>{
   const {openRoom,messageOpenRoom,getOpenRoom}=await import('../lib/open-classroom');const owner=await who(),room=await openRoom({personaId:'spongebob-v1',idempotencyKey:crypto.randomUUID()},owner);

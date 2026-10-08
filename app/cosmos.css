@@ -797,12 +797,11 @@ footer{gap:16px;flex-wrap:wrap}
 .solution-result {font-weight:600;}
 .open-classroom .classroom-header {margin-bottom:8px;}
 .classroom-empty {padding:24px 0;color:var(--muted);}
-.teacher-instinct {margin-top:12px;max-width:520px;color:var(--lofi-peach);font-size:12px;}
-.teacher-instinct summary {display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;min-height:28px;}
-.teacher-instinct summary::-webkit-details-marker {display:none;}
-.teacher-instinct summary:focus-visible {outline:2px solid var(--lofi-mint);outline-offset:3px;border-radius:4px;}
-.teacher-instinct p {font-size:12px!important;margin:4px 0 8px;color:var(--muted);}
-.teacher-instinct.unavailable {color:var(--muted);}
+.teacher-instinct {display:inline-flex;align-items:center;justify-content:center;align-self:flex-end;flex-shrink:0;width:28px;height:28px;margin:0 0 -4px;}
+.teacher-instinct svg {stroke-width:1.8;}
+.teacher-instinct.instinct-grey {color:#a5acba;opacity:.75;}
+.teacher-instinct.instinct-green {color:#8effb4;filter:drop-shadow(0 0 3px #78ffaa9c) drop-shadow(0 0 9px #78ffaa55);}
+.teacher-instinct.instinct-red {color:#ff667a;filter:drop-shadow(0 0 3px #ff4f649c) drop-shadow(0 0 9px #ff4f6455);}
 
 /* A compact station embedded in navigation; the offline track stays available. */
 .audio-row{flex-wrap:wrap;gap:8px}

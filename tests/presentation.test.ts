@@ -1,4 +1,4 @@
-import {needsInstinctCheck,instinctNote} from '../lib/teacher-instinct';
+import {needsInstinctCheck,instinctNote,instinctLight,InstinctSchema} from '../lib/teacher-instinct';
 import {describe,it,expect} from 'vitest';
 import katex from 'katex';
 import {mathParts,plainMath,explanationLines,equationLines,equationFragments} from '../lib/math-text';
@@ -76,6 +76,16 @@ describe('structured worked answers and graph areas',()=>{
 });
 
 describe('teacher instinct without answer disclosure',()=>{
+ it('distinguishes social replies from reasonable physics, doubts, and unavailable checks',()=>{
+  expect(instinctLight().color).toBe('grey');
+  expect(instinctLight({instinct:null,instinctStatus:'not-needed'}).color).toBe('grey');
+  const social=InstinctSchema.parse({signal:'not-physics',focus:'none'});
+  expect(instinctLight({instinct:social,instinctStatus:'checked'}).color).toBe('grey');
+  expect(instinctLight({instinct:{signal:'clear',focus:'none'},instinctStatus:'checked'}).color).toBe('green');
+  for(const signal of ['check','uncertain'] as const)expect(instinctLight({instinct:{signal,focus:'arithmetic'},instinctStatus:'checked'}).color).toBe('red');
+  expect(instinctLight({instinct:null,instinctStatus:'unavailable'}).color).toBe('red');
+  expect(instinctLight({instinct:null,instinctStatus:'checked'}).color).toBe('red');
+ });
  it('checks conceptual attempts as well as calculations, while skipping brief social replies',()=>{
   expect(needsInstinctCheck('Why can an object at rest still have forces acting on it?',false)).toBe(true);
   expect(needsInstinctCheck('Try that again.',false)).toBe(true);
