@@ -106,6 +106,8 @@ test('conceptual conclusions saved in math fields keep spaces and normal type on
  await page.setViewportSize({width:1280,height:900});await page.reload();
  const reply=page.locator('.student-message').last();
  await expect(reply.locator('.equation-prose')).toHaveCount(2);
+ await expect(page.locator('.teacher-instinct')).toHaveAttribute('data-color','grey');
+ await expect(page.locator('.teacher-instinct')).toHaveAttribute('title','Teacher instinct: this physics response could not be checked.');
  await expect(reply.getByText(substitution,{exact:true})).toBeVisible();await expect(reply.getByText(result,{exact:true})).toBeVisible();
  await expect(reply.locator('.equation-prose .katex')).toHaveCount(0);await expect(reply.locator('.katex')).toHaveCount(1);
  await expect(reply.locator('p').first()).toHaveText('Nah, gravity changes. Mass stays the same.');
@@ -414,7 +416,7 @@ test('classroom never substitutes canned replies when a browser has no live conn
   const cue=page.locator('.teacher-instinct');await expect(cue).toHaveCount(1);await expect(cue).toHaveAttribute('data-color','red');await expect(cue).toHaveAttribute('title',/Have the student check the calculation/);await expect(page.getByRole('log').locator('.teacher-instinct')).toHaveCount(0);await expect(cue.locator('summary')).toHaveCount(0);await expect(cue.locator('svg')).toBeVisible();
   await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/open-classroom-instinct.png',fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/open-classroom-instinct-mobile.png',fullPage:true});
   await input.fill('Check 20 divided by 8 again.');await input.press('Enter');await expect(page.getByText('Oh, 20 ÷ 8 is 2.5 m/s². I rushed that.',{exact:true})).toBeVisible();await expect(cue).toHaveAttribute('data-color','green');
-  await input.fill('New question: two trains approach each other, each at 155 km/h. What is their closing speed?');await input.press('Enter');await expect(page.locator('.teacher-message').last()).toContainText('New question');await expect(cue).toHaveAttribute('data-color','red');await expect(cue).toHaveAttribute('title',/could not be checked/);
+  await input.fill('New question: two trains approach each other, each at 155 km/h. What is their closing speed?');await input.press('Enter');await expect(page.locator('.teacher-message').last()).toContainText('New question');await expect(cue).toHaveAttribute('data-color','grey');await expect(cue).toHaveAttribute('title',/could not be checked/);
   await input.fill('How is Lisa?');await input.press('Enter');await expect(cue).toHaveAttribute('data-color','grey');
   await page.reload();await expect(cue).toHaveAttribute('data-color','grey');await expect(page.locator('.student-message')).toHaveCount(4);
   await input.fill('Can you apply the old formula without checking whether acceleration is constant?');await input.press('Enter');await expect(cue).toHaveAttribute('data-color','red');

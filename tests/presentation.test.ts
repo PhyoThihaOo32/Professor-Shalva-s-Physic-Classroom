@@ -100,8 +100,10 @@ describe('teacher instinct without answer disclosure',()=>{
   expect(instinctLight({instinct:social,instinctStatus:'checked'}).color).toBe('grey');
   expect(instinctLight({instinct:{signal:'clear',focus:'none'},instinctStatus:'checked'}).color).toBe('green');
   for(const signal of ['check','uncertain'] as const)expect(instinctLight({instinct:{signal,focus:'arithmetic'},instinctStatus:'checked'}).color).toBe('red');
-  expect(instinctLight({instinct:null,instinctStatus:'unavailable'}).color).toBe('red');
-  expect(instinctLight({instinct:null,instinctStatus:'checked'}).color).toBe('red');
+  expect(instinctLight({instinct:null,instinctStatus:'unavailable'}).color).toBe('grey');
+  expect(instinctLight({instinct:null,instinctStatus:'checked'}).color).toBe('grey');
+  const unavailable=instinctLight({teacher:'Does the same person have the same weight on Earth and the Moon?',student:'Gravity is different, so the weight changes.',work:{equation:'W=mg'},instinct:null,instinctStatus:'unavailable'});
+  expect(unavailable).toEqual({color:'grey',label:'Teacher instinct: this physics response could not be checked.'});
   const saved={instinct:{signal:'clear' as const,focus:'none' as const},instinctStatus:'checked' as const};
   expect(instinctLight({...saved,teacher:'What problem?',student:'You have to give me the question first.'}).color).toBe('grey');
   expect(instinctLight({...saved,teacher:'Don’t be rude.',student:'Just kidding. Give me the question.'}).color).toBe('grey');
