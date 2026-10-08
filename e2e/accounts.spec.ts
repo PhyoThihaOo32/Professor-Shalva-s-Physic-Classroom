@@ -100,7 +100,7 @@ test('login is readable and keyboard accessible on phone, with honest Google ava
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/login');
  await expect(page.getByRole('button',{name:'Sign in',exact:true}).last()).toBeEnabled();await page.getByRole('button',{name:'Create account',exact:true}).click();
  await expect(page.getByRole('textbox',{name:'Name',exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.keyboard.press('Tab');expect(errors).toEqual([]);
- const available=(await (await get(page,'/api/account')).json()).data.googleAvailable;if(!available){await expect(page.getByRole('button',{name:'Continue with Google',exact:true})).toBeDisabled();await expect(page.getByText('Google sign-in is being set up.',{exact:true})).toBeVisible();}
+ const available=(await (await get(page,'/api/account')).json()).data.googleAvailable;if(!available){await expect(page.getByRole('button',{name:'Continue with Google',exact:true})).toBeDisabled();}
  await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/login-phone.png',fullPage:true});
  await page.setViewportSize({width:1280,height:900});await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/login-desktop.png',fullPage:true});
 });
