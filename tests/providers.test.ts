@@ -75,6 +75,7 @@ describe('student conversation boundary, stubbed transport',()=>{
   parse.mockResolvedValueOnce({output_parsed:{message:'Here is the working.',work}}).mockResolvedValueOnce({output_parsed:{message:'The slope gives my acceleration.',work:{...work,drawing}}});
   const reply=await liveProvider('test-model').converse({text:'Explain the solution step by step.',step,persona:personas[1],history:[]},call);
   expect(reply.work?.solution).toEqual(solution);expect(reply.work?.drawing).toEqual(drawing);expect(parse).toHaveBeenCalledTimes(2);
+  expect(parse.mock.calls[1][0].input[1].content).toContain('Repair needed: missing diagram geometry');
   const format=parse.mock.calls[0][0].text.format.schema.properties.work.anyOf[0];expect(format.required).toContain('solution');
  });
  it('honors a request to omit diagrams and rejects malformed mathematics inside a solution section',async()=>{
@@ -131,6 +132,7 @@ describe('student conversation boundary, stubbed transport',()=>{
   const reply=await liveProvider('test-model').converse({text:'Show the calculation.',step:work,persona:personas[1],history:[]},call);
   expect(reply.work?.text).toBe('First leg time: 210 ÷ 95 = 2.21 h.');expect(parse).toHaveBeenCalledTimes(2);
   expect(parse.mock.calls[1][0].input[1].content).toContain('one calculation per newline');
+  expect(parse.mock.calls[1][0].input[1].content).toContain('Repair needed: raw math in prose');
  });
  it('allows new numeric calculations and complete current-step rewrites without the private guide',async()=>{
   const p=demoProblems[2].data,work={...p.reference[0],title:'Recheck the time',text:'I calculated 210 / 95 = 2.21 hours.',equation:'t = 210/95',value:2.21,unit:'h'};
