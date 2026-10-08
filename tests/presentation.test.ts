@@ -85,6 +85,11 @@ describe('teacher instinct without answer disclosure',()=>{
   for(const signal of ['check','uncertain'] as const)expect(instinctLight({instinct:{signal,focus:'arithmetic'},instinctStatus:'checked'}).color).toBe('red');
   expect(instinctLight({instinct:null,instinctStatus:'unavailable'}).color).toBe('red');
   expect(instinctLight({instinct:null,instinctStatus:'checked'}).color).toBe('red');
+  const saved={instinct:{signal:'clear' as const,focus:'none' as const},instinctStatus:'checked' as const};
+  expect(instinctLight({...saved,teacher:'What problem?',student:'You have to give me the question first.'}).color).toBe('grey');
+  expect(instinctLight({...saved,teacher:'Don’t be rude.',student:'Just kidding. Give me the question.'}).color).toBe('grey');
+  expect(instinctLight({...saved,teacher:'Find the acceleration.',student:'20 ÷ 8 is 2.5 m/s².'}).color).toBe('green');
+  expect(instinctLight({...saved,instinctTopicChecked:true,teacher:'Why?',student:'Because it stays the same.'}).color).toBe('green');
  });
  it('checks conceptual attempts as well as calculations, while skipping brief social replies',()=>{
   expect(needsInstinctCheck('Why can an object at rest still have forces acting on it?',false)).toBe(true);

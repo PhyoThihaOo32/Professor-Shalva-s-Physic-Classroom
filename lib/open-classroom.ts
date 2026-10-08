@@ -21,7 +21,7 @@ function roomDTO(s:Awaited<ReturnType<typeof loadRoom>>):OpenClassroom{
  const discussion:OpenTurn[]=s.events.flatMap(event=>{
   const d=event.data as Record<string,unknown>;if(typeof d.teacher!=='string'||typeof d.message!=='string')return [];
   const work=StepSchema.safeParse(d.work),drawing=DrawingSchema.safeParse(d.teacherDrawing),instinct=InstinctSchema.safeParse(d.instinct);
-  return [{id:event.id,kind:'message' as const,stepId:'live',teacher:d.teacher,student:d.message,createdAt:event.createdAt.toISOString(),...(work.success?{work:work.data}:{}),...(drawing.success?{teacherDrawing:drawing.data}:{}),instinct:instinct.success?instinct.data:null,instinctStatus:d.instinctStatus==='checked'?'checked' as const:d.instinctStatus==='unavailable'?'unavailable' as const:'not-needed' as const}];
+  return [{id:event.id,kind:'message' as const,stepId:'live',teacher:d.teacher,student:d.message,createdAt:event.createdAt.toISOString(),...(work.success?{work:work.data}:{}),...(drawing.success?{teacherDrawing:drawing.data}:{}),instinct:instinct.success?instinct.data:null,instinctTopicChecked:d.instinctTopicChecked===true,instinctStatus:d.instinctStatus==='checked'?'checked' as const:d.instinctStatus==='unavailable'?'unavailable' as const:'not-needed' as const}];
  });
  return {id:s.id,kind:'open-classroom',personaId:s.personaVersionId,revision:s.revision,state:s.state,discussion};
 }
@@ -69,7 +69,7 @@ export async function messageOpenRoom(id:string,input:z.infer<typeof openMessage
   return await db.$transaction(async tx=>{
    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))::text`;
    const s=await tx.session.findUniqueOrThrow({where:{id}});assert(s.revision===reservation.revision,'STALE','The conversation changed while responding.',409);
-   await tx.sessionEvent.create({data:{sessionId:id,type:'open-message',data:json({teacher:input.text,message:reply.message,work:reply.work,teacherDrawing:input.drawing,instinct,instinctStatus,promptVersion:CHAT_PROMPT_VERSION})}});
+   await tx.sessionEvent.create({data:{sessionId:id,type:'open-message',data:json({teacher:input.text,message:reply.message,work:reply.work,teacherDrawing:input.drawing,instinct,instinctStatus,instinctTopicChecked:instinctStatus==='checked',promptVersion:CHAT_PROMPT_VERSION})}});
    const saved=await tx.session.update({where:{id},data:{revision:{increment:1},model:connection.model},include});
    const result={session:roomDTO(saved)};await tx.operation.update({where:{sessionId_key:{sessionId:id,key:input.idempotencyKey}},data:{status:'complete',result:json(result)}});return result;
   });

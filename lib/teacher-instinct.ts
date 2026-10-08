@@ -3,9 +3,16 @@ export const InstinctSchema=z.object({signal:z.enum(['clear','check','uncertain'
 export type TeacherInstinct=z.infer<typeof InstinctSchema>;
 const focusNotes:Record<TeacherInstinct['focus'],string>={reasoning:'Ask how the student reached that step.',formula:'Ask why that formula applies.',arithmetic:'Have the student check the calculation.',units:'Ask the student to check the units.',assumptions:'Ask what the student assumed.',diagram:'Compare the diagram with the explanation.',none:'Ask the student to explain the attempt.'};
 export function instinctNote(instinct:TeacherInstinct){return focusNotes[instinct.focus];}
-export function instinctLight(turn?:{instinct:TeacherInstinct|null;instinctStatus:'checked'|'unavailable'|'not-needed'}):{color:'grey'|'green'|'red';label:string}{
+export function instinctLight(turn?:{instinct:TeacherInstinct|null;instinctStatus:'checked'|'unavailable'|'not-needed';instinctTopicChecked?:boolean;teacher?:string;student?:string;work?:unknown}):{color:'grey'|'green'|'red';label:string}{
  if(!turn)return {color:'grey',label:'Teacher instinct: waiting for a physics response.'};
  if(turn.instinctStatus==='not-needed'||turn.instinct?.signal==='not-physics')return {color:'grey',label:'Teacher instinct: casual conversation.'};
+ // Earlier saved cues did not classify conversation topics. Keep plain banter
+ // neutral, while preserving their checks for recognizable physics attempts.
+ if(!turn.instinctTopicChecked&&typeof turn.teacher==='string'&&!turn.work){
+  const visible=`${turn.teacher} ${turn.student??''}`;
+  const physics=/\b(?:acceleration|velocity|speed|distance|displacement|force|gravity|mass|momentum|energy|friction|kinetic|centripetal|circular|motion|kinematics|inertia|torque|newton|electric|magnetic|charge|voltage|current|resistance|wavelength|frequency|collision|projectile|free fall|time interval|slope|derivative|equation|formula|units?|recalculate|calculate)\b|\d\s*(?:m\/s|km\/h|kg|N\b|J\b)|\d\s*[÷×+*/=]\s*\d/i.test(visible);
+  if(!physics)return {color:'grey',label:'Teacher instinct: conversation without a physics attempt.'};
+ }
  if(turn.instinctStatus==='checked'&&turn.instinct?.signal==='clear')return {color:'green',label:'Teacher instinct: this physics response seems reasonable.'};
  if(turn.instinctStatus==='unavailable'||!turn.instinct)return {color:'red',label:'Teacher instinct: this physics response could not be checked. Take a closer look.'};
  return {color:'red',label:`Teacher instinct: something is doubtful. ${instinctNote(turn.instinct)}`};
