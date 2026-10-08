@@ -79,6 +79,25 @@ test('new conversations preserve older rooms and sign-out clears another open ta
  await signup(page,email());expect((await (await get(page,'/api/account/conversations')).json()).data).toHaveLength(0);
 });
 
+test('individual conversation deletion confirms, handles failure, persists, and keeps other chats',async({page})=>{
+ const selected=await seedGuestRoom(page);await signup(page,email());
+ const account=(await (await get(page,'/api/account')).json()).data;
+ const kept=await db.session.create({data:{userId:account.user.id,kind:'open-classroom',personaVersionId:'spongebob-v1',rubricVersionId:'instructor-v1',promptVersion:'deletion-test',provider:'live',difficulty:'guided',state:'teaching',events:{create:{type:'open-message',data:{teacher:'Keep this conversation',message:'Ready to check my diagram!'}}}}});
+ await page.reload();
+ const remove=page.getByRole('button',{name:'Delete conversation: Our car and acceleration discussion',exact:true});
+ await expect(remove).toBeVisible();
+ const row=page.locator('.space-conversations li').filter({has:remove});await expect(row.getByRole('link')).toHaveAttribute('href',`/classroom?student=bart-v1&room=${selected}`);
+ page.once('dialog',dialog=>dialog.dismiss());await remove.click();await expect(remove).toBeVisible();expect((await get(page,`/api/classrooms/${selected}`)).status()).toBe(200);
+ expect((await page.request.delete(`/api/account/conversations/${selected}`,{headers:{Origin:'https://foreign.example'}})).status()).toBe(403);
+ await page.route(`**/api/account/conversations/${selected}`,route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'Couldn’t delete this conversation. Please try again.'}})}),{times:1});
+ page.once('dialog',dialog=>dialog.accept());await remove.click();await expect(page.getByRole('main').getByRole('alert')).toContainText('Couldn’t delete');await expect(remove).toBeVisible();await expect(remove).toBeEnabled();
+ page.once('dialog',dialog=>dialog.accept());await remove.click();await expect(remove).toHaveCount(0);await expect(page.getByRole('heading',{name:'Keep this conversation',exact:true})).toBeVisible();await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
+ await page.reload();await expect(remove).toHaveCount(0);await expect(page.getByRole('heading',{name:'Keep this conversation',exact:true})).toBeVisible();expect((await get(page,`/api/classrooms/${selected}`)).status()).toBe(404);
+ expect((await (await get(page,'/api/account/conversations')).json()).data.map((s:{id:string})=>s.id)).toEqual([kept.id]);
+ await page.setViewportSize({width:390,height:844});const last=page.getByRole('button',{name:'Delete conversation: Keep this conversation',exact:true});await expect(last).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ page.once('dialog',dialog=>dialog.accept());await last.click();await expect(page.getByRole('heading',{name:'A little room for your ideas.',exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'A little room for your ideas.',exact:true})).toBeVisible();
+});
+
 test('optional import can be declined and failed passwords reveal no account details',async({page})=>{
  const id=await seedGuestRoom(page),address=email();await signup(page,address,false);expect((await (await get(page,'/api/account/conversations')).json()).data).toEqual([]);expect((await get(page,`/api/classrooms/${id}`)).status()).toBe(404);
  await page.goto('/settings');await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page).toHaveURL(/\/login$/);

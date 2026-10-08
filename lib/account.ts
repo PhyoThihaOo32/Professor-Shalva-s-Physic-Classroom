@@ -2,7 +2,7 @@ import 'server-only';
 import {cookies} from 'next/headers';
 import {z} from 'zod';
 import {db} from './db';
-import {verifyGuest,type Identity} from './security';
+import {verifyGuest,requireUser,type Identity} from './security';
 import {assert} from './errors';
 import {moveGuestConnection} from './ai-connection';
 import {ProblemSchema} from './schemas';
@@ -41,5 +41,14 @@ export async function conversationHistory(who:Identity):Promise<SpaceConversatio
   const event=s.events[0]?.data as {teacher?:unknown}|undefined;
   const preview=typeof event?.teacher==='string'?event.teacher.slice(0,160):'';
   return {id:s.id,kind:s.kind==='open-classroom'?'open-classroom':'problem',personaId:s.personaVersionId,title:s.kind==='open-classroom'?(preview||'A fresh conversation'):ProblemSchema.parse(s.problemVersion!.data).title,updatedAt:s.updatedAt.toISOString()};
+ });
+}
+export async function deleteConversation(id:string,who:Identity){
+ requireUser(who);
+ return db.$transaction(async tx=>{
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${id}))::text`;
+  const result=await tx.session.deleteMany({where:{id,userId:who.id}});
+  assert(result.count,'NOT_FOUND','Conversation not found.',404);
+  return {deleted:true};
  });
 }

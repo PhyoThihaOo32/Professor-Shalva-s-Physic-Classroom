@@ -10,7 +10,7 @@ import { AppError,assert } from './errors';
 import { personas,publicProblem } from './domain';
 import { createSchema,mutationSchema,createSession,getSession,mutateSession,json,loadSession,sessionDTO } from './sessions';
 import {connectionSchema,connectionStatus,saveConnection,removeConnection,testConnection} from './ai-connection';
-import {accountStatus,completeLogin,completeLoginSchema,resetGuestCookie,conversationHistory} from './account';
+import {accountStatus,completeLogin,completeLoginSchema,resetGuestCookie,conversationHistory,deleteConversation} from './account';
 import {registerAccount} from './auth-store';
 const contentInput=z.object({chapterId:z.string().max(100),data:ProblemSchema}).strict();
 async function readBody(request:Request){const raw=await request.text();assert(raw.length<=100000,'BODY','Request is too large.',413);return JSON.parse(raw) as unknown;}
@@ -35,6 +35,7 @@ export async function handle(request:Request){
   }
   requireUser(who);
   if(path[0]==='account'&&path[1]==='conversations'&&path.length===2&&method==='GET')return ok(await conversationHistory(who));
+  if(path[0]==='account'&&path[1]==='conversations'&&path.length===3&&method==='DELETE')return ok(await deleteConversation(path[2],who));
   if(path[0]==='config'&&method==='GET')return ok({personas,liveEnabled:(await connectionStatus(who)).configured,owner:who.owner,authenticationConfigured:!!process.env.AUTH_GITHUB_ID,identity:who.kind});
   if(path[0]==='ai-connection'){
    if(method==='GET'&&!path[1])return ok(await connectionStatus(who));

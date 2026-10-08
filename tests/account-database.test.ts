@@ -4,7 +4,8 @@ vi.mock('@/auth',()=>({auth:vi.fn()}));
 if(process.env.TEST_DATABASE_URL)process.env.DATABASE_URL=process.env.TEST_DATABASE_URL;
 const {db}=await import('../lib/db');
 const {registerAccount,authenticateAccount,accountAdapter,limitAccountAction}=await import('../lib/auth-store');
-const {claimGuestHistory,conversationHistory,accountStatus}=await import('../lib/account');
+const {claimGuestHistory,conversationHistory,accountStatus,deleteConversation}=await import('../lib/account');
+const {createSession}=await import('../lib/sessions');
 const {openRoom,getOpenRoom}=await import('../lib/open-classroom');
 const {saveConnection,resolveAi}=await import('../lib/ai-connection');
 const userIds:string[]=[],guestIds:string[]=[];
@@ -47,6 +48,37 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('account integrity in isolated P
   const owner=await user(),first=await room(owner),nonce=crypto.randomUUID(),second=await room(owner,true,nonce);
   expect(second.id).not.toBe(first.id);expect((await room(owner,true,nonce)).id).toBe(second.id);expect((await room(owner)).id).toBe(second.id);
   expect((await getOpenRoom(first.id,owner)).id).toBe(first.id);expect(await conversationHistory(owner)).toHaveLength(2);
+ });
+ it('deletes only the selected owned conversation and rejects other users and guests',async()=>{
+  const owner=await user(),other=await user(),anonymous=await guest(),selected=await room(owner),kept=await room(owner,true);
+  await expect(deleteConversation(selected.id,other)).rejects.toMatchObject({code:'NOT_FOUND',status:404});
+  await expect(deleteConversation(selected.id,anonymous)).rejects.toMatchObject({code:'UNAUTHORIZED',status:401});
+  expect((await getOpenRoom(selected.id,owner)).id).toBe(selected.id);
+  expect(await deleteConversation(selected.id,owner)).toEqual({deleted:true});
+  expect((await conversationHistory(owner)).map(s=>s.id)).toEqual([kept.id]);
+  await expect(getOpenRoom(selected.id,owner)).rejects.toMatchObject({code:'NOT_FOUND',status:404});
+  await expect(deleteConversation(selected.id,owner)).rejects.toMatchObject({code:'NOT_FOUND',status:404});
+  expect((await room(owner)).id).toBe(kept.id);expect(await db.user.findUnique({where:{id:owner.id}})).not.toBeNull();
+ });
+ it('removes dependent conversation records while keeping the account and its saved connection',async()=>{
+  const owner=await user();
+  await saveConnection({apiKey:'sk-test-deletion-keeps-connection-not-networked',model:'fixture-model'},owner);
+  const session=await createSession({problemId:'water-in-the-bucket',personaId:'theo-v1',difficulty:'guided',provider:'mock',idempotencyKey:crypto.randomUUID()},owner);
+  await db.session.update({where:{id:session.id},data:{
+   corrections:{create:{stepId:'s1',text:'Check units',verdict:'accepted',feedback:{}}},
+   hints:{create:{stepId:'s1',level:1}},
+   assessments:{create:{rootStep:'s1',score:1,criteria:{}}},
+   calls:{create:{purpose:'fixture',model:'fixture-model',status:'succeeded',reservedCostCents:50}},
+  }});
+  expect(await db.attemptStep.count({where:{sessionId:session.id}})).toBeGreaterThan(0);
+  await deleteConversation(session.id,owner);
+  const where={sessionId:session.id};
+  expect(await Promise.all([
+   db.attemptStep.count({where}),db.errorInstance.count({where}),db.sessionEvent.count({where}),db.correction.count({where}),
+   db.hintUsage.count({where}),db.assessment.count({where}),db.modelCall.count({where}),db.operation.count({where}),
+  ])).toEqual([0,0,0,0,0,0,0,0]);
+  expect(await resolveAi(owner)).toEqual({apiKey:'sk-test-deletion-keeps-connection-not-networked',model:'fixture-model'});
+  expect(await db.problemVersion.findUnique({where:{id:'water-in-the-bucket-v1'}})).not.toBeNull();
  });
  it('links stable Google subjects and exposes no OAuth tokens or account privileges',async()=>{
   const owner=await user(),subject=crypto.randomUUID();
