@@ -16,7 +16,7 @@ test('one guide icon opens a separate reminder page without changing the classro
  await expect(page.getByRole('heading',{name:'Solve with symbols first',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Check units again',exact:true})).toBeVisible();
  const picture=page.locator('.guide-animation img');
- await expect.poll(()=>picture.evaluate(img=>({loaded:(img as HTMLImageElement).complete,width:(img as HTMLImageElement).naturalWidth,src:(img as HTMLImageElement).currentSrc}))).toEqual({loaded:true,width:500,src:'http://127.0.0.1:3000/images/problem-guide-space.gif'});
+ await expect.poll(()=>picture.evaluate(img=>({loaded:(img as HTMLImageElement).complete,width:(img as HTMLImageElement).naturalWidth,src:(img as HTMLImageElement).currentSrc}))).toEqual({loaded:true,width:500,src:`${process.env.E2E_BASE_URL??'http://127.0.0.1:3100'}/images/problem-guide-space.gif`});
  const palette=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());expect(palette).toBe('#3d4b65');
  await page.screenshot({path:'docs/problem-solving-guide.png',fullPage:true});
  await page.reload();await expect(page.locator('.problem-guide-steps li')).toHaveCount(9);

@@ -1,5 +1,6 @@
-import {test,expect,type APIRequestContext,type Page} from '@playwright/test';
-const origin='http://127.0.0.1:3000';
+import {expect,type APIRequestContext,type Page} from '@playwright/test';
+import {test} from './fixtures';
+const origin=process.env.E2E_BASE_URL??'http://127.0.0.1:3100';
 const key=()=>crypto.randomUUID();
 test('Problems combines references without creating or replacing classroom sessions',async({page})=>{
  await page.goto('/classroom?student=bart-v1');await expect(page.getByLabel('Message your student')).toBeVisible();
@@ -16,6 +17,18 @@ test('Problems combines references without creating or replacing classroom sessi
  for(const route of ['/progress','/resources']){await page.goto(route,{waitUntil:'load'});await expect(page).toHaveURL(/\/library$/);await expect(page.getByRole('heading',{name:'Problems',exact:true})).toBeVisible();}
  expect(mutations).toEqual([]);expect((await (await page.request.get('/api/progress',{maxRetries:1})).json()).data.sessions).toHaveLength(1);
  await nav.getByRole('link',{name:'Classroom',exact:true}).click();await expect(page.getByLabel('Message your student')).toBeVisible();expect((await (await page.request.get(`/api/classrooms/${classroomId}`)).json()).data.id).toBe(classroomId);await expect(page.locator('.classroom-title')).not.toContainText('The drive home');
+});
+
+test('Problems retries failed loads with readable errors and keeps exercise numbers in order',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ let failList=true;await page.route('**/api/problems',async route=>{if(failList){failList=false;await route.abort('failed');}else await route.continue();});
+ await page.goto('/library');await expect(page.getByRole('main').getByRole('alert')).toContainText('Check your connection and try again.');
+ await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(page.locator('.problem-list a')).toHaveCount(9);
+ expect(await page.locator('.problem-index').allTextContents()).toEqual(['5','11','13','17','19','21','33','41','55','63']);
+ let failReference=true;await page.route('**/api/problems/ch2-two-trains/reference',async route=>{if(failReference){failReference=false;await route.fulfill({status:502,contentType:'text/html',body:'<html>Bad Gateway</html>'});}else await route.continue();});
+ await page.getByRole('link',{name:/Two trains/}).click();await expect(page.getByRole('main').getByRole('alert')).toHaveText('The server is unavailable right now. Please try again.');
+ await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(page.getByRole('heading',{name:'Worked solution'})).toBeVisible();
+ await expect(page.getByRole('status')).toHaveText('Step 1 of 8');expect(errors).toEqual([]);
 });
 
 test('student calculations stay inside each chat reply without a separate work board',async({page})=>{
@@ -138,7 +151,7 @@ test('public DTOs and export hide private references and unrevealed work',async(
  await page.goto(`/sessions/${s.id}`);expect(await page.content()).not.toContain('expectedCorrection');const hidden=await mutation(page.request,s.id,'corrections',s.revision,{stepId:'s7',action:'correct',text:'Reveal the final answer'});expect(hidden.status()).toBe(400);
 });
 test('guest cookies, ownership, CSRF, and owner authorization',async({page,browser})=>{
- const s=(await (await create(page.request)).json()).data;const cookie=(await page.context().cookies()).find(c=>c.name==='chalklight_guest');expect(cookie?.httpOnly).toBe(true);expect(cookie?.sameSite).toBe('Lax');
+ const s=(await (await create(page.request)).json()).data;const cookie=(await page.context().cookies()).find(c=>c.name==='chalklight_guest');expect(cookie?.httpOnly).toBe(true);expect(cookie?.secure).toBe(true);expect(cookie?.sameSite).toBe('Lax');
  const other=await browser.newContext();const read=await other.request.get(`${origin}/api/sessions/${s.id}`);expect(read.status()).toBe(404);const write=await other.request.post(`${origin}/api/sessions/${s.id}/next`,{headers:{origin},data:{revision:s.revision,idempotencyKey:key()}});expect(write.status()).toBe(404);
  const csrf=await page.request.post(`/api/sessions/${s.id}/next`,{headers:{origin:'https://untrusted.example'},data:{revision:s.revision,idempotencyKey:key()}});expect(csrf.status()).toBe(403);
  const owner=await page.request.post('/api/owner/problems',{headers:{origin},data:{}});expect(owner.status()).toBe(403);await other.close();
@@ -283,23 +296,26 @@ test('sidebar folds, preserves navigation and preference, and restores on mobile
 });
 
 
-test('open conversation and API key setup preserve the room without exposing credentials',async({page,browser})=>{
+test('minimal Settings preserves the room and private connection APIs never expose credentials',async({page,browser})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/classroom?student=bart-v1');const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
  const id=(await (await page.request.get('/api/progress')).json()).data.sessions[0].id;
  expect(await page.locator('.conversation-composer').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
  await expect(page.locator('.classroom-question')).toHaveCount(0);await expect(page.locator('.classroom-title h2')).toHaveCount(0);
  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Settings',exact:true}).click();
- const fakeKey='sk-browser-test-fixture-no-openai-calls';await page.getByLabel('OpenAI API key',{exact:true}).fill(fakeKey);await page.getByLabel('Model',{exact:true}).fill('gpt-4.1-mini');await page.getByRole('button',{name:'Save API key',exact:true}).click();
- await expect(page.getByText(/Key saved securely/)).toBeVisible();await expect(page.getByLabel('OpenAI API key',{exact:true})).toHaveValue('');
- await page.reload();await expect(page.getByText(/Your key is saved/)).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Your history'})).toBeVisible();await expect(page.getByRole('heading',{name:'Study music'})).toBeVisible();
+ await expect(page.getByLabel('OpenAI API key',{exact:true})).toHaveCount(0);await expect(page.getByRole('heading',{name:'Focus & accessibility'})).toHaveCount(0);
+ await expect(page.getByText(/Mock demonstrations make no OpenAI calls|A signed, HttpOnly guest cookie/)).toHaveCount(0);
+ const fakeKey='sk-browser-test-fixture-no-openai-calls';
+ const saved=await page.request.post('/api/ai-connection',{headers:{origin},data:{apiKey:fakeKey,model:'gpt-4.1-mini'}});expect(saved.ok()).toBe(true);
+ await page.reload();await expect(page.getByRole('heading',{name:'Your history'})).toBeVisible();
  for(const path of ['/api/ai-connection','/api/config','/api/history/export'])expect(await (await page.request.get(path)).text()).not.toContain(fakeKey);
  expect(await page.evaluate(()=>JSON.stringify({...localStorage}))).not.toContain(fakeKey);
  const stranger=await browser.newContext();expect((await (await stranger.request.get(`${origin}/api/ai-connection`)).json()).data.personal).toBe(false);await stranger.close();
- await page.getByRole('link',{name:/Return to classroom/}).click();await expect(input).toBeVisible();await expect(page.getByRole('link',{name:'Live',exact:true})).toBeVisible();
+ await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Classroom',exact:true}).click();await expect(input).toBeVisible();await expect(page.getByText('Live',{exact:true})).toBeVisible();
  expect((await (await page.request.get('/api/progress')).json()).data.sessions[0].id).toBe(id);expect((await (await page.request.get(`/api/classrooms/${id}`)).json()).data.discussion).toEqual([]);
- await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'Remove API key',exact:true}).click();await expect(page.getByText('Your personal key was removed.',{exact:true})).toBeVisible();
- await page.setViewportSize({width:390,height:844});await page.getByRole('link',{name:/Return to classroom/}).click();await expect(input).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
+ expect((await page.request.delete('/api/ai-connection',{headers:{origin},data:{confirm:'REMOVE MY API KEY'}})).ok()).toBe(true);
+ await page.setViewportSize({width:390,height:844});await page.reload();await expect(input).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
 });
 
 test('bottom input and inline paper support drawn replies, annotations, persistence, and mobile',async({page})=>{
