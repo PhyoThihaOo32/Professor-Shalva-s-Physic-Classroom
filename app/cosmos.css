@@ -699,6 +699,9 @@ footer{gap:16px;flex-wrap:wrap}
 .welcome-copy .mode-actions {align-items:center;}
 .welcome-copy h1 {text-shadow:0 3px 30px #17102380;}
 .welcome-copy p {color:var(--muted);text-shadow:0 2px 16px #354e6333;}
+.welcome-quote {max-width:510px;min-height:80px;display:flex;flex-direction:column;justify-content:center;margin:0 auto 32px;}
+.welcome-quote blockquote {margin:0;font-size:16px;font-weight:400;line-height:1.65;text-wrap:balance;color:#e5e7ee;}
+.welcome-quote figcaption {margin-top:10px;font-size:11px;line-height:1.5;letter-spacing:.3px;color:#d2c4e4;}
 .entry-astronaut .role-page {padding-top:32px;}
 .entry-astronaut .role-options {margin-left:auto;margin-right:auto;}
 .entry-astronaut .role-page h1,.entry-astronaut .role-page>.eyebrow,.entry-astronaut .role-page>.subtitle {text-align:center;}
@@ -709,6 +712,9 @@ footer{gap:16px;flex-wrap:wrap}
 .entry-astronaut .role-choice p {color:var(--muted);}
 @media(max-width:600px){
  .welcome-hero {min-height:450px;}
+ .welcome-quote {max-width:350px;min-height:112px;margin-bottom:25px;}
+ .welcome-quote blockquote {font-size:14px;line-height:1.65;}
+ .welcome-quote figcaption {font-size:10px;margin-top:8px;}
  .entry-astronaut .entry-animation img {object-position:30% center;}
  .entry-astronaut .role-page {padding-top:24px;}
  .entry-astronaut .role-options {gap:16px;}
