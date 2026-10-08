@@ -1,2 +1,3 @@
 import {ChooseRole} from '@/components/onboarding';
-export default function Page(){return <ChooseRole/>;}
+import {requireAccountPage} from '@/lib/page-account';
+export default async function Page(){await requireAccountPage('/roles');return <ChooseRole/>;}

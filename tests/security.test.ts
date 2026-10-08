@@ -3,10 +3,17 @@ const mocks=vi.hoisted(()=>({auth:vi.fn(),user:vi.fn(),guest:vi.fn(),upsert:vi.f
 vi.mock('@/auth',()=>({auth:mocks.auth}));
 vi.mock('../lib/db',()=>({db:{user:{findUnique:mocks.user},guestIdentity:{findUnique:mocks.guest,upsert:mocks.upsert}}}));
 vi.mock('next/headers',()=>({cookies:async()=>({get:mocks.get,set:mocks.set})}));
-import {signGuest,verifyGuest,owned,checkOrigin,requireOwner,identity} from '../lib/security';
+import {signGuest,verifyGuest,owned,checkOrigin,requireOwner,identity,authenticatedIdentity,requireUser} from '../lib/security';
 beforeAll(()=>{process.env.GUEST_COOKIE_SECRET='a-long-fixture-secret-used-only-for-unit-tests';process.env.APP_ORIGIN='http://127.0.0.1:3000';});
 beforeEach(()=>{Object.values(mocks).forEach(mock=>mock.mockReset());});
 describe('guest and owner authentication boundaries',()=>{
+ it('page authentication rejects an anonymous or deleted account without creating guest cookies',async()=>{
+  process.env.AUTH_SECRET='a-fixture-secret-longer-than-thirty-two-characters';mocks.auth.mockResolvedValue(null);
+  expect(await authenticatedIdentity()).toBeNull();expect(mocks.set).not.toHaveBeenCalled();expect(mocks.upsert).not.toHaveBeenCalled();
+  mocks.auth.mockResolvedValue({user:{id:'deleted-user'}});mocks.user.mockResolvedValue(null);expect(await authenticatedIdentity()).toBeNull();
+  expect(()=>requireUser({id:'signed-guest',kind:'guest',owner:false})).toThrow('Please sign in');
+  expect(()=>requireUser({id:'account-user',kind:'user',owner:false})).not.toThrow();
+ });
  it('rejects tampering, malformed, future, and expired guest signatures',()=>{const id=crypto.randomUUID();const cookie=signGuest(id);expect(verifyGuest(cookie)).toBe(id);expect(verifyGuest(cookie+'tampered')).toBeNull();expect(verifyGuest('garbage')).toBeNull();expect(verifyGuest(signGuest(id,1))).toBeNull();expect(verifyGuest(signGuest(id,Math.floor(Date.now()/1000)+120))).toBeNull();});
  it('does not authorize an owner globally to read another guest session',()=>{expect(owned({userId:null,guestId:'alice'},{id:'bob',kind:'guest',owner:false})).toBe(false);expect(owned({userId:null,guestId:'alice'},{id:'owner',kind:'user',owner:true})).toBe(false);expect(owned({userId:null,guestId:'alice'},{id:'alice',kind:'guest',owner:false})).toBe(true);});
  it('role choice is never admin authorization',()=>{expect(()=>requireOwner({id:'teacher',kind:'guest',owner:false})).toThrow('authenticated content owner');expect(()=>requireOwner({id:'owner',kind:'guest',owner:true})).toThrow();});

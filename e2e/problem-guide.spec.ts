@@ -1,4 +1,5 @@
-import {test,expect} from '@playwright/test';
+import {expect} from '@playwright/test';
+import {test} from './fixtures';
 
 test('one guide icon opens a separate reminder page without changing the classroom',async({page})=>{
  const mutations:string[]=[];

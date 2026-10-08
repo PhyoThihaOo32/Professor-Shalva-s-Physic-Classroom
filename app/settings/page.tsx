@@ -1,2 +1,3 @@
 import {Settings} from '@/components/settings';
-export default function Page(){return <Settings/>;}
+import {requireAccountPage} from '@/lib/page-account';
+export default async function Page(){await requireAccountPage('/settings');return <Settings/>;}

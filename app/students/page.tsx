@@ -1,2 +1,3 @@
 import {ChooseStudent} from '@/components/onboarding';
-export default function Page(){return <ChooseStudent/>;}
+import {requireAccountPage} from '@/lib/page-account';
+export default async function Page(){await requireAccountPage('/students');return <ChooseStudent/>;}

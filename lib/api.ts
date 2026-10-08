@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { db } from './db';
-import { identity,checkOrigin,requireOwner } from './security';
+import { identity,checkOrigin,requireOwner,requireUser } from './security';
 import { AppError,assert } from './errors';
 import { personas,publicProblem } from './domain';
 import { createSchema,mutationSchema,createSession,getSession,mutateSession,json,loadSession,sessionDTO } from './sessions';
@@ -32,8 +32,9 @@ export async function handle(request:Request){
   if(path[0]==='account'){
    if(path.length===1&&method==='GET')return ok(await accountStatus(who));
    if(path[1]==='complete'&&path.length===2&&method==='POST')return ok(await completeLogin(who,completeLoginSchema.parse(await readBody(request)).importGuest));
-   if(path[1]==='conversations'&&path.length===2&&method==='GET')return ok(await conversationHistory(who));
   }
+  requireUser(who);
+  if(path[0]==='account'&&path[1]==='conversations'&&path.length===2&&method==='GET')return ok(await conversationHistory(who));
   if(path[0]==='config'&&method==='GET')return ok({personas,liveEnabled:(await connectionStatus(who)).configured,owner:who.owner,authenticationConfigured:!!process.env.AUTH_GITHUB_ID,identity:who.kind});
   if(path[0]==='ai-connection'){
    if(method==='GET'&&!path[1])return ok(await connectionStatus(who));

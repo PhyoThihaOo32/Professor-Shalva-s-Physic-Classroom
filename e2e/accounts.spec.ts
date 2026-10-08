@@ -1,5 +1,6 @@
 import {expect,type Page} from '@playwright/test';
-import {test} from './fixtures';
+import {anonymousTest as test} from './fixtures';
+import {createHmac} from 'node:crypto';
 import {db} from '../lib/db';
 const origin=process.env.E2E_BASE_URL??'http://127.0.0.1:3100';
 const emails:string[]=[],password='a classroom test password 42';
@@ -8,15 +9,51 @@ async function get(page:Page,path:string){const cookie=(await page.context().coo
 async function signup(page:Page,address:string,keep=true){
  await page.goto('/login');const tab=page.getByRole('button',{name:'Create account',exact:true});await expect(tab).toBeEnabled();await tab.click();
  await page.getByRole('textbox',{name:'Name',exact:true}).fill('Alex');await page.getByRole('textbox',{name:'Email',exact:true}).fill(address);await page.getByLabel('Password',{exact:true}).fill(password);
- if(!keep)await page.getByRole('checkbox',{name:'Keep conversations from this browser'}).uncheck();await page.getByRole('button',{name:'Create my account',exact:true}).click();await expect(page).toHaveURL(/\/space$/);
+ if(!keep)await page.getByRole('checkbox',{name:'Keep conversations from this browser'}).uncheck();await page.getByRole('button',{name:'Create my account',exact:true}).click();await expect(page).toHaveURL(/\/roles$/);await page.goto('/space');
 }
 async function login(page:Page,address:string){await page.goto('/login');await expect(page.getByRole('button',{name:'Sign in',exact:true}).last()).toBeEnabled();await page.getByRole('textbox',{name:'Email',exact:true}).fill(address);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).last().click();await expect(page).toHaveURL(/\/space$/);}
+const guests:string[]=[];
 async function seedGuestRoom(page:Page){
- await page.goto('/classroom?student=bart-v1');await expect(page.getByLabel('Message your student')).toBeVisible();
- const rooms=(await (await get(page,'/api/account/conversations')).json()).data;const id=rooms[0].id;
- await db.sessionEvent.create({data:{sessionId:id,type:'open-message',data:{teacher:'Our car and acceleration discussion',message:'I rushed that division. Let me try again, teach.'}}});return id as string;
+ // Existing histories predate mandatory accounts. Create a legacy record and
+ // signed browser cookie directly; anonymous users cannot start new rooms.
+ const guestId=crypto.randomUUID();guests.push(guestId);await db.guestIdentity.create({data:{id:guestId}});
+ const data=`${guestId}.${Math.floor(Date.now()/1000)}`;
+ const signature=createHmac('sha256',process.env.GUEST_COOKIE_SECRET!).update(data).digest('base64url');
+ await page.context().addCookies([{name:'chalklight_guest',value:`${data}.${signature}`,domain:new URL(origin).hostname,path:'/',httpOnly:true,secure:true,sameSite:'Lax'}]);
+ const room=await db.session.create({data:{guestId,kind:'open-classroom',personaVersionId:'bart-v1',rubricVersionId:'instructor-v1',promptVersion:'legacy-test',provider:'live',difficulty:'guided',state:'teaching',events:{create:{type:'open-message',data:{teacher:'Our car and acceleration discussion',message:'I rushed that division. Let me try again, teach.'}}}}});return room.id;
 }
-test.afterAll(async()=>{await db.user.deleteMany({where:{email:{in:emails}}});await db.$disconnect();});
+test.afterAll(async()=>{await db.user.deleteMany({where:{email:{in:emails}}});await db.guestIdentity.deleteMany({where:{id:{in:guests}}});await db.$disconnect();});
+
+test('welcome makes account actions visible and every workspace route requires sign-in',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto('/');
+ const welcome=page.locator('.welcome-account-actions');await expect(welcome.getByRole('link',{name:'Sign in',exact:true})).toBeVisible();await expect(welcome.getByRole('link',{name:'Create account',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/welcome-account-phone.png',fullPage:true});
+ await welcome.getByRole('link',{name:'Create account',exact:true}).click();await expect(page).toHaveURL(/\/login\?mode=signup$/);await expect(page.getByRole('textbox',{name:'Name',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:/Continue as guest/})).toHaveCount(0);
+ for(const path of ['/roles','/students','/classroom?student=bart-v1','/space','/library','/problems/ch2-two-trains','/library/guide','/settings','/sessions/private-room','/sessions/private-room/review','/owner']){
+  await page.goto(path);await expect(page).toHaveURL(/\/login\?next=/);expect(new URL(page.url()).searchParams.get('next')).toBe(path);await expect(page.getByLabel('Password',{exact:true})).toBeVisible();await expect(page.getByLabel('Message your student')).toHaveCount(0);
+ }
+ const headers={Origin:origin};
+ for(const path of ['/api/account/conversations','/api/progress','/api/history/export','/api/ai-connection','/api/classrooms/private-room','/api/sessions/private-room'])expect((await get(page,path)).status()).toBe(401);
+ for(const path of ['/api/classrooms','/api/classrooms/private-room/messages','/api/sessions'])expect((await page.request.post(path,{headers,data:{}})).status()).toBe(401);
+});
+
+test('a saved classroom destination survives switching account tabs and signing in',async({page})=>{
+ const address=email();await signup(page,address);await page.goto('/settings');await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page).toHaveURL(/\/login$/);
+ await page.goto('/classroom?student=stewie-v1');await expect(page).toHaveURL(/\/login\?next=/);
+ await page.getByRole('button',{name:'Create account',exact:true}).click();await expect(page.getByRole('textbox',{name:'Name',exact:true})).toBeVisible();expect(new URL(page.url()).searchParams.get('next')).toBe('/classroom?student=stewie-v1');
+ await page.getByRole('button',{name:'Sign in',exact:true}).first().click();await expect(page.getByRole('textbox',{name:'Name',exact:true})).toHaveCount(0);
+ await page.getByRole('textbox',{name:'Email',exact:true}).fill(address);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).last().click();
+ await expect(page).toHaveURL(/\/classroom\?student=stewie-v1$/);await expect(page.getByRole('heading',{name:'Stewie’s classroom',exact:true})).toBeVisible();await expect(page.getByLabel('Message your student')).toBeVisible();
+ await page.goto('/login?next=https%3A%2F%2Fevil.example');await expect(page).toHaveURL(/\/space$/);
+});
+
+test('a new account follows role and student selection, and welcome resumes a signed-in classroom',async({page})=>{
+ await page.goto('/');await page.locator('.welcome-account-actions').getByRole('link',{name:'Create account',exact:true}).click();
+ await page.getByRole('textbox',{name:'Name',exact:true}).fill('Alex');await page.getByRole('textbox',{name:'Email',exact:true}).fill(email());await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Create my account',exact:true}).click();
+ await expect(page).toHaveURL(/\/roles$/);await expect(page.getByRole('heading',{name:'How will you learn?'})).toBeVisible();
+ await page.getByRole('link',{name:/Be the teacher/}).click();await page.getByRole('button',{name:/Bart/}).click();await page.getByRole('link',{name:'Enter classroom'}).click();await expect(page.getByLabel('Message your student')).toBeVisible();
+ await page.getByRole('link',{name:'Professor Shalva’s Physic Classroom home',exact:true}).click();await expect(page.locator('.welcome-account-actions').getByRole('link',{name:'Enter my classroom',exact:true})).toBeVisible();await expect(page.locator('.welcome-account-actions').getByRole('link',{name:'Create account',exact:true})).toHaveCount(0);
+});
 
 test('sign-up imports guest chat, resumes it on another device, and hides it from other users',async({page,browser})=>{
  const id=await seedGuestRoom(page),address=email();await signup(page,address);
@@ -37,8 +74,8 @@ test('new conversations preserve older rooms and sign-out clears another open ta
  const history=(await (await get(page,'/api/account/conversations')).json()).data;expect(history).toHaveLength(2);expect(history.map((s:{id:string})=>s.id)).toContain(id);
  await page.goto('/space');await page.getByRole('link',{name:/Our car and acceleration discussion/}).click();await expect(page.getByText('I rushed that division. Let me try again, teach.',{exact:true})).toBeVisible();
  const other=await context.newPage();await other.goto(`${origin}/space`);await expect(other.getByRole('heading',{name:'Our car and acceleration discussion'})).toBeVisible();
- await page.goto('/settings');await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page).toHaveURL(/\/login$/);await expect(other.getByRole('heading',{name:'Our car and acceleration discussion'})).toHaveCount(0);await expect(other.getByText('A little room for your ideas.',{exact:true})).toBeVisible();
- expect((await get(page,`/api/classrooms/${id}`)).status()).toBe(404);await other.close();
+ await page.goto('/settings');await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page).toHaveURL(/\/login$/);await expect(other.getByRole('heading',{name:'Our car and acceleration discussion'})).toHaveCount(0);await expect(other).toHaveURL(/\/login\?next=%2Fspace$/);await expect(other.getByLabel('Password',{exact:true})).toBeVisible();
+ expect((await get(page,`/api/classrooms/${id}`)).status()).toBe(401);await other.close();
  await signup(page,email());expect((await (await get(page,'/api/account/conversations')).json()).data).toHaveLength(0);
 });
 
@@ -73,6 +110,6 @@ test('radio keeps playing while signing in and switching to personal space',asyn
  let loads=0;await page.route('https://coderadio-admin-v2.freecodecamp.org/listen/coderadio/radio.mp3',route=>{loads++;return route.fulfill({contentType:'audio/wav',body:wav});});
  await page.goto('/login');await expect(page.getByRole('button',{name:'Create account',exact:true})).toBeEnabled();await page.locator('.onboarding-music').getByRole('button',{name:'Play radio',exact:true}).click();
  const transport=page.locator('audio[data-study-radio]');await transport.evaluate(el=>el.setAttribute('data-account-audio','same-player'));await expect.poll(()=>transport.evaluate((el:HTMLAudioElement)=>el.currentTime)).toBeGreaterThan(0);
- const start=await transport.evaluate((el:HTMLAudioElement)=>el.currentTime);await page.getByRole('button',{name:'Create account',exact:true}).click();await page.getByRole('textbox',{name:'Name',exact:true}).fill('Alex');await page.getByRole('textbox',{name:'Email',exact:true}).fill(email());await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Create my account',exact:true}).click();await expect(page).toHaveURL(/\/space$/);
+ const start=await transport.evaluate((el:HTMLAudioElement)=>el.currentTime);await page.getByRole('button',{name:'Create account',exact:true}).click();await page.getByRole('textbox',{name:'Name',exact:true}).fill('Alex');await page.getByRole('textbox',{name:'Email',exact:true}).fill(email());await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Create my account',exact:true}).click();await expect(page).toHaveURL(/\/roles$/);await page.getByRole('link',{name:'My space',exact:true}).click();await expect(page).toHaveURL(/\/space$/);
  await expect(transport).toHaveAttribute('data-account-audio','same-player');await expect.poll(()=>transport.evaluate((el:HTMLAudioElement)=>el.currentTime)).toBeGreaterThan(start);expect(loads).toBe(1);await expect(page.locator('.sidebar').getByRole('button',{name:'Pause radio',exact:true})).toBeVisible();await page.locator('.sidebar').getByRole('button',{name:'Pause radio',exact:true}).click();
 });

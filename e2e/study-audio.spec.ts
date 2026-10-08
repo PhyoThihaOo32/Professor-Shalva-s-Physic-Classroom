@@ -1,4 +1,5 @@
-import {expect, test} from '@playwright/test';
+import {expect} from '@playwright/test';
+import {test} from './fixtures';
 
 test.beforeEach(async ({page}) => {
   await page.addInitScript(() => {
@@ -146,7 +147,7 @@ for (const source of ['Radio', 'Offline'] as const) {
       }
     }
     await expectContinuousPlayback();
-    await page.getByRole('link', {name: 'Get started'}).click();
+    await page.getByRole('link', {name: 'Enter my classroom'}).click();
     await expect(page.getByRole('heading', {name: 'How will you learn?'})).toBeVisible();
     await expectContinuousPlayback();
     await page.getByRole('link', {name: /Be the teacher/}).click();
@@ -158,7 +159,7 @@ for (const source of ['Radio', 'Offline'] as const) {
     await expectContinuousPlayback();
     // Returning to Welcome also preserves the same playing instance.
     await page.getByRole('link', {name: 'Professor Shalva’s Physic Classroom home', exact: true}).click();
-    await expect(page.getByRole('link', {name: 'Get started'})).toBeVisible();
+    await expect(page.getByRole('link', {name: 'Enter my classroom'})).toBeVisible();
     await expectContinuousPlayback();
     await page.locator('.onboarding-music').getByRole('button', {name: pauseName, exact: true}).click();
     expect(errors).toEqual([]);

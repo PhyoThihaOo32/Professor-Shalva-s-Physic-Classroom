@@ -1,2 +1,3 @@
 import {PersonalSpace} from '@/components/personal-space';
-export default function Page(){return <PersonalSpace/>;}
+import {requireAccountPage} from '@/lib/page-account';
+export default async function Page(){await requireAccountPage('/space');return <PersonalSpace/>;}

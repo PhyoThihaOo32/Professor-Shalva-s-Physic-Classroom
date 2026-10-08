@@ -1,3 +1,5 @@
+import {requireAccountPage} from '@/lib/page-account';
+import {pageDestination} from '@/lib/account-routing';
 import type {Metadata} from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -9,6 +11,7 @@ export const metadata:Metadata={title:'Professor Shalva’s problem-solving guid
 
 export default async function Page({searchParams}:{searchParams:Promise<{student?:string}>}){
  const student=currentStudentId((await searchParams).student);
+ await requireAccountPage(pageDestination('/library/guide',{student}));
  return <div className="page problem-guide">
   <picture className="guide-animation"><source media="(prefers-reduced-motion: reduce)" srcSet="/images/problem-guide-space-still.png"/><Image src="/images/problem-guide-space.gif" width={500} height={500} alt="" unoptimized loading="eager"/></picture>
   <Link className="breadcrumb" href={`/library${student?`?student=${student}`:''}`}><ArrowLeft size={14}/>Problems</Link>

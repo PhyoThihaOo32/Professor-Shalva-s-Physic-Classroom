@@ -1,6 +1,6 @@
 # Personal classrooms
 
-Implemented routes: `/login` and `/space`. Email/password signup and sign-in use Auth.js, PostgreSQL user records, salted scrypt password hashes, and signed/encrypted JWT session cookies. Sessions last 30 days. Google uses the same account/history storage once its OAuth credentials are configured. Guest mode is retained.
+Implemented routes: `/login` and `/space`. Email/password signup and sign-in use Auth.js, PostgreSQL user records, salted scrypt password hashes, and signed/encrypted JWT session cookies. Sessions last 30 days. Google uses the same account/history storage once its OAuth credentials are configured. Welcome and account pages are public; role/student selection, Classroom, Problems, Settings, and My space require an account. Private APIs reject anonymous requests even when a signed legacy guest cookie exists.
 
 ## Google setup
 
@@ -12,6 +12,12 @@ Implemented routes: `/login` and `/space`. Email/password signup and sign-in use
 5. Redeploy the project. Check `/api/auth/providers` for the Google provider, then test **Continue with Google** using a consenting test account. In Google’s testing audience, add that account as a test user if required; configure the intended audience before public use.
 
 For local testing, register `http://127.0.0.1:3000/api/auth/callback/google` separately. Do not point production at a local callback or expose secrets with `NEXT_PUBLIC_` names. Auth.js uses Google’s standard `openid email profile` scopes and accepts verified Google emails. It does not need Gmail or Drive access. [Google’s credential guide](https://developers.google.com/identity/protocols/oauth2/web-server#creatingcred), [Auth.js Google configuration](https://authjs.dev/getting-started/providers/google).
+
+## Entry flow
+
+Welcome offers prominent Sign in and Create account actions. New accounts continue to role selection and then student selection. Returning sign-ins open My space, unless a protected deep link supplies a validated, local return destination. Switching sign-in/signup tabs and Google callbacks preserve that destination. Already signed-in users leave the login page automatically. Server page guards verify both the session and the existing user; the client boundary prevents cached private screens from reappearing after sign-out. Anonymous public content APIs expose only published reference material, never private chats.
+
+There is no guest entry option. The legacy guest cookie exists only to recover pre-account conversations during optional import; old records remain eligible for normal retention cleanup.
 
 ## History and identity
 
@@ -35,4 +41,4 @@ Passwords cannot currently be reset through email, and password account emails a
 | HTTP security | Foreign-origin authentication/signup rejected; caller-supplied import IDs rejected; owner routes denied; secure HttpOnly cookies |
 | UI/audio regressions | Phone/desktop layout, entry pages, references, diagrams, Settings, radio and offline playback through navigation |
 
-Run against a dedicated migrated/seeded test database. Tests use stubbed AI and do not send paid requests. Roll back code to commit `6f66c8a` if account separation, sign-in, or existing classroom recovery fails after release. The account migration only adds columns and an OAuth-account table; do not drop these or reset user data for a code rollback.
+Run against a dedicated migrated/seeded test database. Tests use stubbed AI and do not send paid requests. Roll back code to commit `0b3a5d4` if account separation, sign-in, or existing classroom recovery fails after release. The account migration only adds columns and an OAuth-account table; do not drop these or reset user data for a code rollback.

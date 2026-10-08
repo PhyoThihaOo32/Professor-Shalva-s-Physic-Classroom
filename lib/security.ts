@@ -13,19 +13,24 @@ export function verifyGuest(value:string):string|null{
  const issued=Number(parts[1]);if(!Number.isFinite(issued)||issued>Date.now()/1000+60||issued<Date.now()/1000-lifetime)return null;
  const expected=signGuest(parts[0],issued).split('.')[2];const a=Buffer.from(expected),b=Buffer.from(parts[2]);return a.length===b.length&&timingSafeEqual(a,b)?parts[0]:null;
 }
-export async function identity():Promise<Identity>{
+export async function authenticatedIdentity():Promise<Identity|null>{
  if(process.env.AUTH_SECRET){
   const session=await auth(),owner=!!session?.ownerId&&session.ownerId===process.env.AUTH_OWNER_GITHUB_ID;
   if(session?.user?.id&&await db.user.findUnique({where:{id:session.user.id},select:{id:true}}))return {id:session.user.id,kind:'user',owner};
   const legacy=owner?`github:${session!.ownerId}`:null;
   if(legacy&&await db.user.findUnique({where:{id:legacy},select:{id:true}}))return {id:legacy,kind:'user',owner:true};
  }
+ return null;
+}
+export async function identity():Promise<Identity>{
+ const user=await authenticatedIdentity();if(user)return user;
  const jar=await cookies();const cookie=jar.get('chalklight_guest')?.value;let id=cookie?verifyGuest(cookie):null;
  if(id&&!await db.guestIdentity.findUnique({where:{id}}))id=null;
  if(!id){id=randomUUID();jar.set('chalklight_guest',signGuest(id),{httpOnly:true,sameSite:'lax',secure:process.env.COOKIE_SECURE==='true'||process.env.NODE_ENV==='production',path:'/',maxAge:lifetime});}
  await db.guestIdentity.upsert({where:{id},create:{id},update:{lastSeenAt:new Date()}});
  return {id,kind:'guest',owner:false};
 }
+export function requireUser(who:Identity){assert(who.kind==='user','UNAUTHORIZED','Please sign in to open your classroom.',401);}
 export function owned(session:{userId:string|null;guestId:string|null},who:Identity){return who.kind==='user'?session.userId===who.id:session.guestId===who.id;}
 export function requireOwner(who:Identity){assert(who.owner&&who.kind==='user','FORBIDDEN','Only the authenticated content owner may edit or publish.',403);}
 export function checkOrigin(request:Request){const expected=process.env.APP_ORIGIN??'http://127.0.0.1:3000';assert(request.headers.get('origin')===expected,'ORIGIN','Request origin was not accepted.',403);assert(!request.headers.get('sec-fetch-site')||['same-origin','none'].includes(request.headers.get('sec-fetch-site')!),'CSRF','Cross-site mutation rejected.',403);}

@@ -5,7 +5,7 @@ export async function api<T>(path:string,options?:{method?:string;body?:unknown}
  catch{throw new Error('Couldn’t reach the classroom. Check your connection and try again.');}
  let result;
  try{result=await res.json();}catch{throw new Error('The server is unavailable right now. Please try again.');}
- if(!res.ok)throw new Error(`${result.error?.message??'Request failed. Please try again.'}${result.requestId?` (request ${result.requestId})`:''}`);
+ if(!res.ok){if(res.status===401)window.dispatchEvent(new Event('classroom-auth-expired'));throw new Error(`${result.error?.message??'Request failed. Please try again.'}${result.requestId?` (request ${result.requestId})`:''}`);}
  return result.data as T;
 }
 export function key(){return crypto.randomUUID();}
