@@ -96,45 +96,144 @@ test('a browser resume rejection is handled and Play can retry', async ({page}) 
   expect(errors).toEqual([]);
 });
 
-test('one cafe radio stays embedded in the sidebar, survives navigation and folding, and falls back offline', async ({page,context}) => {
-  let loads=0;
-  // Deterministic transport for our lifecycle checks; the real provider is checked separately.
-  await page.route('https://www.lofi.cafe/', route => {loads++; return route.fulfill({contentType:'text/html',body:'<button>Radio fixture</button>'});});
+// A real, decodable audio fixture tests playback rather than iframe visibility.
+const stationStream = 'https://coderadio-admin-v2.freecodecamp.org/listen/coderadio/radio.mp3';
+function radioFixture() {
+  const rate = 22050, count = rate * 60, wav = Buffer.alloc(44 + count * 2);
+  wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 2, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
+  wav.write('data', 36); wav.writeUInt32LE(count * 2, 40);
+  for (let i = 0; i < count; i++) wav.writeInt16LE(Math.round(Math.sin(2 * Math.PI * 220 * i / rate) * 3000), 44 + i * 2);
+  return wav;
+}
+async function radioTime(page: import('@playwright/test').Page) {
+  return page.locator('audio[data-study-radio]').evaluate((element: HTMLAudioElement) => element.currentTime);
+}
+
+test('audio-only radio decodes music, shares volume, survives navigation and folding, and keeps phones compact', async ({page, context}) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  let loads = 0;
+  await page.route(stationStream, route => {loads++; return route.fulfill({contentType: 'audio/wav', body: radioFixture()});});
   await page.goto('/settings');
-  const player=page.locator('.settings-audio'),frame=page.getByTitle('lofi.cafe radio',{exact:true});
-  await expect(player.getByRole('button',{name:'Radio',exact:true})).toHaveAttribute('aria-pressed','true');await expect(frame).toHaveCount(0);
-  await player.getByRole('button',{name:'Open radio',exact:true}).click();await expect(frame).toBeVisible();
-  await expect(page.locator('.sidebar-music').getByTitle('lofi.cafe radio',{exact:true})).toHaveCount(1);
-  expect(await page.locator('.cafe-radio').evaluate(e=>getComputedStyle(e).position)).not.toBe('fixed');
-  await expect(page.getByRole('button',{name:'Close radio',exact:true})).toHaveCount(0);
-  const dock=await page.locator('.cafe-radio').boundingBox(),sidebar=await page.locator('.sidebar').boundingBox();
-  expect(dock!.x).toBeGreaterThanOrEqual(sidebar!.x);expect(dock!.x+dock!.width).toBeLessThanOrEqual(sidebar!.x+sidebar!.width);
-  expect(dock!.height).toBeLessThanOrEqual(150);
-  await expect.poll(()=>loads).toBe(1);
-  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Problems',exact:true}).click();
-  await expect(frame).toBeVisible();expect(loads).toBe(1);
-  await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();await expect(frame).toBeHidden();await expect(frame).toHaveCount(1);expect(loads).toBe(1);
-  await page.getByRole('button',{name:'Expand sidebar',exact:true}).click();await expect(frame).toBeVisible();expect(loads).toBe(1);
-  await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();
-  await page.locator('.sidebar').getByRole('button',{name:'Offline',exact:true}).click();await expect(frame).toHaveCount(0);
-  await page.locator('.sidebar').getByRole('button',{name:'Play audio',exact:true}).click();await expect.poll(()=>outputPeak(page)).toBeGreaterThan(.0001);
-  await page.locator('.sidebar').getByRole('button',{name:'Radio',exact:true}).click();
-  await expect.poll(()=>page.evaluate(()=>(window as unknown as {audioProbes:AudioContext[]}).audioProbes.at(-1)?.state)).toBe('suspended');await expect(frame).toHaveCount(0);
-  await page.locator('.sidebar').getByRole('button',{name:'Open radio',exact:true}).click();await expect(frame).toBeVisible();
-  await expect(page.getByRole('button',{name:'Fold sidebar',exact:true})).toBeVisible();
-  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  const phoneDock=await page.locator('.cafe-radio').boundingBox(),phoneSidebar=await page.locator('.sidebar').boundingBox();
-  expect(phoneDock!.y+phoneDock!.height).toBeLessThanOrEqual(phoneSidebar!.y+phoneSidebar!.height);expect(phoneDock!.height).toBeLessThanOrEqual(130);
-  await context.setOffline(true);await expect(frame).toHaveCount(0);
-  await expect(page.locator('.topbar-audio').getByRole('button',{name:'Offline',exact:true})).toHaveAttribute('aria-pressed','true');
-  await page.locator('.topbar-audio').getByRole('button',{name:'Play audio',exact:true}).click();await expect.poll(()=>outputPeak(page)).toBeGreaterThan(.0001);
-  await context.setOffline(false);await expect(page.locator('.topbar-audio').getByRole('button',{name:'Offline',exact:true})).toHaveAttribute('aria-pressed','true');
-  await page.locator('.topbar-audio').getByRole('button',{name:'Pause audio',exact:true}).click();
-  await page.locator('.topbar-audio').getByRole('button',{name:'Radio',exact:true}).click();await page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true}).click();
-  await page.locator('.sidebar-music').getByRole('button',{name:'Stop radio',exact:true}).click();await expect(frame).toHaveCount(0);
-  await expect(page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true})).toBeFocused();
-  await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();
-  await page.locator('.topbar-audio').getByRole('button',{name:'Open radio',exact:true}).click();await expect(frame).toBeVisible();
-  await expect(page.getByRole('button',{name:'Fold sidebar',exact:true})).toBeVisible();
-  await page.locator('.topbar-audio').getByRole('button',{name:'Stop radio',exact:true}).click();await expect(frame).toHaveCount(0);
+  const player = page.locator('.settings-audio'), audio = page.locator('audio[data-study-radio]');
+  const response = await page.request.get('/settings');
+  expect(response.headers()['content-security-policy']).toContain("frame-src 'none'");
+  expect(response.headers()['content-security-policy']).toContain("media-src 'self' blob: https://coderadio-admin-v2.freecodecamp.org");
+  await expect(audio).toHaveCount(1); await expect(audio).not.toHaveAttribute('src');
+  await expect(page.locator('iframe')).toHaveCount(0);
+  await player.getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect(player.getByRole('button', {name: 'Pause radio', exact: true})).toBeEnabled();
+  await expect.poll(() => radioTime(page)).toBeGreaterThan(.1);
+  await expect(player.locator('.music-wave-playing')).toHaveCount(1);
+  await expect(page.locator('.sidebar').getByRole('button', {name: 'Pause radio', exact: true})).toBeVisible();
+  // Native browser/headphone controls must keep our playback indicator truthful.
+  await audio.evaluate((e: HTMLAudioElement) => e.pause());
+  await expect(player.getByRole('button', {name: 'Play radio', exact: true})).toBeVisible();
+  await expect(page.locator('.music-wave-playing')).toHaveCount(0);
+  await audio.evaluate((e: HTMLAudioElement) => e.play());
+  await expect(player.getByRole('button', {name: 'Pause radio', exact: true})).toBeVisible();
+  await player.getByRole('button', {name: 'Mute audio', exact: true}).click();
+  expect(await audio.evaluate((e: HTMLAudioElement) => e.muted)).toBe(true);
+  await expect(page.locator('.music-wave-playing')).toHaveCount(0);
+  await player.getByRole('button', {name: 'Unmute audio', exact: true}).click();
+  await player.getByLabel('Audio volume').fill('0.18');
+  expect(await audio.evaluate((e: HTMLAudioElement) => e.volume)).toBe(.18);
+  await expect(page.locator('.sidebar').getByLabel('Audio volume')).toHaveValue('0.18');
+  const time = await radioTime(page);
+  await page.getByRole('navigation', {name: 'Main navigation'}).getByRole('link', {name: 'Problems', exact: true}).click();
+  await expect.poll(() => radioTime(page)).toBeGreaterThan(time);
+  expect(loads).toBe(1); await expect(audio).toHaveCount(1);
+  await page.getByRole('button', {name: 'Fold sidebar', exact: true}).click();
+  await page.locator('.sidebar').getByRole('button', {name: 'Pause radio', exact: true}).click();
+  await expect(audio).not.toHaveAttribute('src');
+  await page.locator('.sidebar').getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect.poll(() => radioTime(page)).toBeGreaterThan(.1);
+  // Play never unfolds navigation or opens a station screen.
+  await expect(page.getByRole('button', {name: 'Expand sidebar', exact: true})).toBeVisible();
+  await page.setViewportSize({width: 390, height: 844});
+  const topbar = page.locator('.topbar-audio');
+  await expect(topbar.getByRole('button', {name: 'Pause radio', exact: true})).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', {name: 'Expand sidebar', exact: true}).click();
+  expect((await page.locator('.sidebar').boundingBox())!.height).toBeLessThanOrEqual(70);
+  await topbar.getByRole('button', {name: 'Offline', exact: true}).click();
+  await expect(audio).not.toHaveAttribute('src');
+  await topbar.getByRole('button', {name: 'Play audio', exact: true}).click();
+  await expect.poll(() => outputPeak(page)).toBeGreaterThan(.0001);
+  await topbar.getByRole('button', {name: 'Radio', exact: true}).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as {audioProbes: AudioContext[]}).audioProbes.at(-1)?.state)).toBe('suspended');
+  await expect(topbar.getByRole('button', {name: 'Play radio', exact: true})).toBeVisible();
+  await topbar.getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect.poll(() => radioTime(page)).toBeGreaterThan(.1);
+  await context.setOffline(true); await expect(audio).not.toHaveAttribute('src');
+  await expect(topbar.getByRole('button', {name: 'Offline', exact: true})).toHaveAttribute('aria-pressed', 'true');
+  await topbar.getByRole('button', {name: 'Play audio', exact: true}).click();
+  await expect.poll(() => outputPeak(page)).toBeGreaterThan(.0001);
+  await context.setOffline(false);
+  await expect(topbar.getByRole('button', {name: 'Offline', exact: true})).toHaveAttribute('aria-pressed', 'true');
+  await topbar.getByRole('button', {name: 'Pause audio', exact: true}).click();
+  await topbar.getByRole('button', {name: 'Radio', exact: true}).click();
+  await page.reload(); await expect(audio).not.toHaveAttribute('src');
+  await expect(topbar.getByRole('button', {name: 'Play radio', exact: true})).toBeVisible();
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await topbar.getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect(topbar.getByRole('button', {name: 'Pause radio', exact: true})).toBeVisible();
+  expect(await topbar.locator('.music-wave-trace').last().evaluate(e => getComputedStyle(e).animationName)).toBe('none');
+  await topbar.getByRole('button', {name: 'Pause radio', exact: true}).click();
+  expect(errors).toEqual([]);
+});
+
+test('radio handles blocked playback and a broken stream, then retries without a duplicate player', async ({page}) => {
+  await page.addInitScript(() => {
+    const play = HTMLMediaElement.prototype.play; let blocked = false;
+    HTMLMediaElement.prototype.play = function () {
+      if (this.matches('[data-study-radio]') && !blocked) {blocked = true; return Promise.reject(new DOMException('Blocked', 'NotAllowedError'));}
+      return play.call(this);
+    };
+  });
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  let failed = true;
+  await page.route(stationStream, route => failed ? route.abort('failed') : route.fulfill({contentType: 'audio/wav', body: radioFixture()}));
+  await page.goto('/settings'); const player = page.locator('.settings-audio');
+  await player.getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect(player.getByRole('status')).toContainText('browser blocked audio');
+  await expect(player.getByRole('button', {name: 'Play radio', exact: true})).toBeEnabled();
+  await expect(page.locator('.music-wave-playing')).toHaveCount(0);
+  await player.getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect(player.getByRole('status')).toContainText('Radio is unavailable');
+  failed = false;
+  await player.getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect.poll(() => radioTime(page)).toBeGreaterThan(.1);
+  await expect(player.getByRole('status')).toHaveCount(0);
+  await expect(page.locator('audio[data-study-radio]')).toHaveCount(1);
+  await player.getByRole('button', {name: 'Pause radio', exact: true}).click();
+  expect(errors).toEqual([]);
+});
+
+test('radio can stop a pending connection and its wave rests during buffering and at zero volume', async ({page}) => {
+  let hold: (() => void) | undefined;
+  let slow = true;
+  await page.route(stationStream, async route => {
+    if (slow) await new Promise<void>(resolve => {hold = resolve;});
+    await route.fulfill({contentType: 'audio/wav', body: radioFixture()}).catch(() => {});
+  });
+  await page.goto('/settings'); const player = page.locator('.settings-audio'), audio = page.locator('audio[data-study-radio]');
+  await player.getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect.poll(() => !!hold).toBe(true);
+  await expect(player.getByRole('button', {name: 'Stop radio', exact: true})).toBeEnabled();
+  await expect(page.locator('.music-wave-playing')).toHaveCount(0);
+  await player.getByRole('button', {name: 'Stop radio', exact: true}).click();
+  await expect(audio).not.toHaveAttribute('src');
+  slow = false; hold!();
+  await player.getByRole('button', {name: 'Play radio', exact: true}).click();
+  await expect.poll(() => radioTime(page)).toBeGreaterThan(.1);
+  await audio.evaluate(e => e.dispatchEvent(new Event('waiting')));
+  await expect(player.getByRole('button', {name: 'Stop radio', exact: true})).toBeEnabled();
+  await expect(page.locator('.music-wave-playing')).toHaveCount(0);
+  await audio.evaluate(e => e.dispatchEvent(new Event('playing')));
+  await expect(player.locator('.music-wave-playing')).toHaveCount(1);
+  await player.getByLabel('Audio volume').fill('0');
+  await expect(page.locator('.music-wave-playing')).toHaveCount(0);
+  await player.getByRole('button', {name: 'Pause radio', exact: true}).click();
 });
