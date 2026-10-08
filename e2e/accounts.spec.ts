@@ -87,15 +87,24 @@ test('individual conversation deletion confirms, handles failure, persists, and 
  const remove=page.getByRole('button',{name:'Delete conversation: Our car and acceleration discussion',exact:true});
  await expect(remove).toBeVisible();
  const row=page.locator('.space-conversations li').filter({has:remove});await expect(row.getByRole('link')).toHaveAttribute('href',`/classroom?student=bart-v1&room=${selected}`);
- page.once('dialog',dialog=>dialog.dismiss());await remove.click();await expect(remove).toBeVisible();expect((await get(page,`/api/classrooms/${selected}`)).status()).toBe(200);
+ const confirmation=page.getByRole('dialog',{name:'Delete conversation?',exact:true});
+ await remove.click();await expect(confirmation).toBeVisible();await expect(confirmation.getByText('Our car and acceleration discussion',{exact:true})).toBeVisible();await expect(confirmation.getByRole('button',{name:'Cancel',exact:true})).toBeFocused();
+ await page.keyboard.press('Tab');await expect(confirmation.getByRole('button',{name:'Delete',exact:true})).toBeFocused();await page.keyboard.press('Shift+Tab');await expect(confirmation.getByRole('button',{name:'Cancel',exact:true})).toBeFocused();
+ await page.keyboard.press('Escape');await expect(confirmation).toHaveCount(0);await expect(remove).toBeFocused();
+ await remove.click();await confirmation.getByRole('button',{name:'Cancel',exact:true}).click();await expect(confirmation).toHaveCount(0);await expect(remove).toBeVisible();expect((await get(page,`/api/classrooms/${selected}`)).status()).toBe(200);
+ await remove.click();await page.mouse.click(8,8);await expect(confirmation).toHaveCount(0);await expect(remove).toBeFocused();
  expect((await page.request.delete(`/api/account/conversations/${selected}`,{headers:{Origin:'https://foreign.example'}})).status()).toBe(403);
  await page.route(`**/api/account/conversations/${selected}`,route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{message:'Couldn’t delete this conversation. Please try again.'}})}),{times:1});
- page.once('dialog',dialog=>dialog.accept());await remove.click();await expect(page.getByRole('main').getByRole('alert')).toContainText('Couldn’t delete');await expect(remove).toBeVisible();await expect(remove).toBeEnabled();
- page.once('dialog',dialog=>dialog.accept());await remove.click();await expect(remove).toHaveCount(0);await expect(page.getByRole('heading',{name:'Keep this conversation',exact:true})).toBeVisible();await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
+ await remove.click();await confirmation.getByRole('button',{name:'Delete',exact:true}).click();await expect(confirmation.getByRole('alert')).toContainText('Couldn’t delete');await expect(confirmation).toBeVisible();await expect(confirmation.getByRole('button',{name:'Delete',exact:true})).toBeEnabled();await expect(remove).toBeVisible();
+ let resumeDelete!:()=>void;const deletionGate=new Promise<void>(resolve=>{resumeDelete=resolve;});
+ await page.route(`**/api/account/conversations/${selected}`,async route=>{await deletionGate;await route.continue();},{times:1});
+ await confirmation.getByRole('button',{name:'Delete',exact:true}).click();await expect(confirmation.getByRole('button',{name:'Deleting…',exact:true})).toBeDisabled();await expect(confirmation.getByRole('button',{name:'Cancel',exact:true})).toBeDisabled();await page.keyboard.press('Escape');await expect(confirmation).toBeVisible();resumeDelete();
+ await expect(remove).toHaveCount(0);await expect(confirmation).toHaveCount(0);await expect(page.getByRole('heading',{name:'Your conversations',exact:true})).toBeFocused();await expect(page.getByRole('heading',{name:'Keep this conversation',exact:true})).toBeVisible();await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
  await page.reload();await expect(remove).toHaveCount(0);await expect(page.getByRole('heading',{name:'Keep this conversation',exact:true})).toBeVisible();expect((await get(page,`/api/classrooms/${selected}`)).status()).toBe(404);
  expect((await (await get(page,'/api/account/conversations')).json()).data.map((s:{id:string})=>s.id)).toEqual([kept.id]);
  await page.setViewportSize({width:390,height:844});const last=page.getByRole('button',{name:'Delete conversation: Keep this conversation',exact:true});await expect(last).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- page.once('dialog',dialog=>dialog.accept());await last.click();await expect(page.getByRole('heading',{name:'A little room for your ideas.',exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'A little room for your ideas.',exact:true})).toBeVisible();
+ await last.click();await expect(confirmation).toBeVisible();await expect(confirmation.getByRole('button',{name:'Cancel',exact:true})).toBeFocused();expect(await confirmation.evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;})).toBe(true);await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/delete-confirmation-phone.png',fullPage:true});
+ await confirmation.getByRole('button',{name:'Delete',exact:true}).click();await expect(page.getByRole('heading',{name:'A little room for your ideas.',exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'A little room for your ideas.',exact:true})).toBeVisible();
 });
 
 test('optional import can be declined and failed passwords reveal no account details',async({page})=>{
