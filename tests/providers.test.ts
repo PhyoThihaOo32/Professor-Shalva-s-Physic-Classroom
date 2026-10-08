@@ -85,11 +85,20 @@ describe('student conversation boundary, stubbed transport',()=>{
  });
  it('keeps open-classroom first attempts imperfect and separates the reviewer from student context',async()=>{
   const step={...demoProblems[2].data.reference[0],id:'live',text:'',equation:''};parse.mockResolvedValueOnce({output_parsed:{message:'I’ll try a shortcut first.',work:{...step,text:'I need to check the assumption.',solution:null}}});
-  const input={text:'Explain step by step without a diagram.',step,persona:personas[1],history:[],openClassroom:true};
+  const greeting:DiscussionTurn={id:'hello',kind:'message',stepId:'live',teacher:'Hello Bart.',student:'Hey, teach.',createdAt:'2026-10-07T00:00:00Z'};
+  const input={text:'Explain step by step without a diagram.',step,persona:personas[1],history:[greeting],openClassroom:true};
   const reply=await liveProvider('test-model').converse(input,call);
   const developer=parse.mock.calls[0][0].input[1].content;expect(developer).toContain('You are a learner, not a tutor');expect(developer).toContain('Do not give the complete correct answer immediately');expect(developer).toContain('preserve what you learned');
+  expect(parse.mock.calls[0][0].input[0].content).toContain('You are Bart Simpson');
+  expect(developer).toContain('FIRST ATTEMPT');expect(developer).not.toContain('9. Check units again');
   parse.mockResolvedValueOnce({output_parsed:{signal:'check',focus:'assumptions'}});const cue=await liveProvider('test-model').instinct(input,reply,call);
   expect(cue).toEqual({signal:'check',focus:'assumptions'});expect(parse.mock.calls[1][0].max_output_tokens).toBe(300);expect(parse.mock.calls[1][0].store).toBe(false);expect(JSON.stringify(parse.mock.calls[1][0].input)).not.toContain('expectedCorrection');
+  const attempt:DiscussionTurn={id:'attempt',kind:'message',stepId:'live',teacher:input.text,student:reply.message,createdAt:'2026-10-07T00:01:00Z',work:reply.work??undefined};
+  parse.mockResolvedValueOnce({output_parsed:{message:'Okay, I’ll check that assumption.',work:null}});
+  await liveProvider('test-model').converse({...input,text:'Check whether acceleration is constant before applying this formula.',history:[greeting,attempt]},call);
+  const revision=parse.mock.calls[2][0].input;
+  expect(revision[1].content).not.toContain('FIRST ATTEMPT');expect(revision[1].content).toContain('9. Check units again');
+  expect(revision.some((turn:{role:string;content:string})=>turn.role==='assistant'&&turn.content===JSON.stringify({message:reply.message,work:reply.work}))).toBe(true);
  });
  it('uses only visible work and bounded conversation, with no grading reference',async()=>{
   parse.mockResolvedValue({output_parsed:{message:'How would you explain the direction in this step?',work:null},usage:{output_tokens:12}});
