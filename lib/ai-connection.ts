@@ -27,6 +27,10 @@ function decrypt(encrypted:string,owner:string){
  }catch{throw new AppError('AI_KEY_UNAVAILABLE','The saved API connection cannot be opened.',503);}
 }
 const where=(who:Identity)=>who.kind==='guest'?{guestId:who.id}:{userId:who.id};
+function sharedConnection(){
+ const {ALLOW_LIVE_AI,OPENAI_API_KEY,OPENAI_MODEL}=process.env;
+ return ALLOW_LIVE_AI==='true'&&OPENAI_API_KEY&&OPENAI_MODEL?{apiKey:OPENAI_API_KEY,model:OPENAI_MODEL}:null;
+}
 export async function saveConnection(input:z.infer<typeof connectionSchema>,who:Identity){
  const data={encryptedKey:encrypt(input.apiKey,ownerKey(who)),model:input.model};
  await db.aiConnection.upsert({where:where(who),create:{...where(who),...data},update:data});
@@ -35,14 +39,15 @@ export async function saveConnection(input:z.infer<typeof connectionSchema>,who:
 export async function removeConnection(who:Identity){await db.aiConnection.deleteMany({where:where(who)});return connectionStatus(who);}
 export async function connectionStatus(who:Identity){
  const saved=await db.aiConnection.findUnique({where:where(who),select:{model:true}});
- const shared=process.env.ALLOW_LIVE_AI==='true'&&!!process.env.OPENAI_API_KEY&&!!process.env.OPENAI_MODEL;
- return {configured:!!saved||shared,personal:!!saved,model:saved?.model??process.env.OPENAI_MODEL??'gpt-4.1-mini',source:saved?'personal':shared?'server':'none'};
+ const shared=sharedConnection();
+ return {configured:!!saved||!!shared,personal:!!saved,model:shared?.model??saved?.model??process.env.OPENAI_MODEL??'gpt-4.1-mini',source:shared?'server':saved?'personal':'none'};
 }
 export async function resolveAi(who:Identity){
+ // App-wide access must not be shadowed by a browser's older saved credential.
+ const shared=sharedConnection();if(shared)return shared;
  const saved=await db.aiConnection.findUnique({where:where(who)});
  if(saved)return {apiKey:decrypt(saved.encryptedKey,ownerKey(who)),model:saved.model};
- assert(process.env.ALLOW_LIVE_AI==='true'&&process.env.OPENAI_API_KEY&&process.env.OPENAI_MODEL,'LIVE_UNAVAILABLE','Live AI is not connected for this browser.',503);
- return {apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL};
+ throw new AppError('LIVE_UNAVAILABLE','Live AI is not connected for this browser.',503);
 }
 export async function testConnection(who:Identity){
  const connection=await resolveAi(who);

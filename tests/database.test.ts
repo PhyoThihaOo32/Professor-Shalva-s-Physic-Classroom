@@ -126,6 +126,43 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestrati
   for(const hidden of ['DO NOT EXPOSE','Hidden reply','System dispute status','Malformed'])expect(JSON.stringify(publicView)).not.toContain(hidden);
  });
 
+ it('uses the shared app connection ahead of old browser credentials without changing stored keys',async()=>{
+  const {saveConnection,resolveAi,connectionStatus}=await import('../lib/ai-connection');
+  const owner=await who(),stranger=await who(),apiKey='sk-test-old-personal-never-networked';
+  await saveConnection({apiKey,model:'old-personal-model'},owner);
+  const saved=await db.aiConnection.findUniqueOrThrow({where:{guestId:owner.id}});
+  const shared={apiKey:'fake-test-no-network',model:'stubbed-model'};
+  expect(await resolveAi(owner)).toEqual(shared);expect(await resolveAi(stranger)).toEqual(shared);
+  expect(await connectionStatus(owner)).toEqual({configured:true,personal:true,model:shared.model,source:'server'});
+  expect(await connectionStatus(stranger)).toEqual({configured:true,personal:false,model:shared.model,source:'server'});
+  expect(JSON.stringify(await connectionStatus(owner))).not.toContain(apiKey);
+  expect(await db.aiConnection.findUniqueOrThrow({where:{guestId:owner.id}})).toEqual(saved);
+  for(const missing of ['ALLOW_LIVE_AI','OPENAI_API_KEY','OPENAI_MODEL']){
+   const previous=process.env[missing];delete process.env[missing];
+   expect(await resolveAi(owner)).toEqual({apiKey,model:'old-personal-model'});
+   expect(await connectionStatus(owner)).toMatchObject({configured:true,personal:true,model:'old-personal-model',source:'personal'});
+   await expect(resolveAi(stranger)).rejects.toThrow('Live AI is not connected');process.env[missing]=previous;
+  }
+ });
+ it('preserves saved chat after an authentication failure and retries the same message exactly once',async()=>{
+  const {openRoom,messageOpenRoom,getOpenRoom}=await import('../lib/open-classroom');
+  const owner=await who();let room=await openRoom({personaId:'bart-v1',idempotencyKey:crypto.randomUUID()},owner);
+  parse.mockResolvedValueOnce({output_parsed:{message:'Hey, teach! What’s up?',work:null}});
+  room=(await messageOpenRoom(room.id,{revision:room.revision,idempotencyKey:crypto.randomUUID(),text:'hey bart'},owner)).session;
+  const history=room.discussion,failed={revision:room.revision,idempotencyKey:crypto.randomUUID(),text:'hey'};
+  parse.mockRejectedValueOnce(Object.assign(new Error('Invalid API key: sk-private-provider-detail'),{status:401}));
+  const logging=vi.spyOn(console,'error').mockImplementation(()=>{});
+  try{
+   await expect(messageOpenRoom(room.id,failed,owner)).rejects.toMatchObject({code:'AI_AUTHENTICATION',status:503,message:'OpenAI rejected the AI connection. Ask the app owner to update the API key. Your message and saved conversation are safe.'});
+   expect(JSON.stringify(logging.mock.calls)).not.toContain('sk-private-provider-detail');
+  }finally{logging.mockRestore();}
+  room=await getOpenRoom(room.id,owner);expect(room.discussion).toEqual(history);expect(room.revision).toBe(failed.revision+1);
+  expect((await db.operation.findUniqueOrThrow({where:{sessionId_key:{sessionId:room.id,key:failed.idempotencyKey}}})).status).toBe('failed');
+  const retry={...failed,revision:room.revision,idempotencyKey:crypto.randomUUID()};
+  parse.mockResolvedValueOnce({output_parsed:{message:'Still here, teach. Got something for me?',work:null}});
+  const result=await messageOpenRoom(room.id,retry,owner);expect(result.session.discussion).toHaveLength(2);expect(result.session.discussion[0]).toEqual(history[0]);expect(result.session.discussion[1].teacher).toBe('hey');
+  expect(await messageOpenRoom(room.id,retry,owner)).toEqual(result);expect(parse).toHaveBeenCalledTimes(3);
+ });
  it('saves only encrypted personal keys, isolates owners, and removes access without exposing credentials',async()=>{
   const {saveConnection,resolveAi,connectionStatus,removeConnection}=await import('../lib/ai-connection');
   const owner=await who(),stranger=await who();const apiKey='sk-test-fixture-never-sent-to-openai';

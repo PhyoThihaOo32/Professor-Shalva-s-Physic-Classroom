@@ -332,6 +332,28 @@ test('bottom input and inline paper support drawn replies, annotations, persiste
  await page.setViewportSize({width:390,height:844});await expect(input).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const box=(await composer.boundingBox())!;expect(box.y+box.height).toBeLessThanOrEqual(844);await page.screenshot({path:'docs/chat-drawing-classroom-mobile.png',fullPage:true});await page.getByRole('button',{name:'Draw or annotate',exact:true}).click();await expect(editor.getByRole('group',{name:'Diagram tools'})).toBeVisible();await expect(input).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await editor.getByRole('button',{name:'Close drawing',exact:true}).click();expect(errors).toEqual([]);
 });
 
+test('an AI authentication failure preserves text, drawing, and earlier chat for an Enter retry',async({page})=>{
+ await page.goto('/classroom?student=bart-v1');const input=page.getByLabel('Message your student');await expect(input).toBeVisible();
+ const id=(await (await page.request.get('/api/progress')).json()).data.sessions[0].id;
+ let room=(await (await page.request.get(`/api/classrooms/${id}`)).json()).data;
+ room={...room,discussion:[{id:'previous-chat',kind:'message',stepId:'live',teacher:'how is lisa?',student:'Probably reading another book, teach.',createdAt:'2026-10-07T12:00:00Z',instinct:null,instinctStatus:'not-needed'}]};
+ await page.route(`**/api/classrooms/${id}`,route=>route.fulfill({json:{data:room}}));
+ await page.route('**/api/classrooms',route=>route.fulfill({json:{data:room}}));
+ let sends=0;let firstDrawing:unknown;
+ await page.route(`**/api/classrooms/${id}/messages`,async route=>{
+  const body=route.request().postDataJSON();sends++;expect(body.revision).toBe(room.revision);expect(body.text).toBe('hey');
+  if(sends===1){firstDrawing=body.drawing;room={...room,revision:room.revision+1};await route.fulfill({status:503,json:{error:{code:'AI_AUTHENTICATION',message:'OpenAI rejected the AI connection. Your message and saved conversation are safe.'},requestId:'test-authentication-failure'}});}
+  else{expect(body.drawing).toEqual(firstDrawing);room={...room,revision:room.revision+2,discussion:[...room.discussion,{id:'retried-chat',kind:'message',stepId:'live',teacher:body.text,student:'Hey again, teach!',createdAt:'2026-10-07T12:01:00Z',teacherDrawing:body.drawing,instinct:null,instinctStatus:'not-needed'}]};await route.fulfill({json:{data:{session:room}}});}
+ });
+ await page.reload();await expect(page.getByRole('log')).toContainText('how is lisa?');
+ await page.getByRole('button',{name:'Draw or annotate',exact:true}).click();const editor=page.getByRole('region',{name:'Drawing annotations'});
+ await editor.getByRole('button',{name:'Label',exact:true}).click();await editor.getByLabel('Diagram label').fill('my diagram');await editor.getByRole('button',{name:'Add label to paper'}).click();
+ await input.fill('hey');await input.press('Enter');await expect(page.getByRole('alert').filter({hasText:'OpenAI rejected'})).toBeVisible();
+ await expect(input).toHaveValue('hey');await expect(input).toBeEnabled();await expect(input).toBeFocused();await expect(editor.locator('svg text')).toContainText(['my diagram']);await expect(page.locator('.student-message')).toHaveCount(1);
+ await input.press('Enter');await expect(input).toHaveValue('');await expect(page.getByRole('log')).toContainText('Hey again, teach!');await expect(page.locator('.student-message')).toHaveCount(2);await expect(editor).toHaveCount(0);expect(sends).toBe(2);
+ await page.reload();await expect(page.getByRole('log')).toContainText('how is lisa?');await expect(page.locator('.student-message')).toHaveCount(2);
+});
+
 test('classroom never substitutes canned replies when a browser has no live connection',async({page})=>{
  for(const student of ['bart-v1','spongebob-v1','stewie-v1']){
   await page.goto(`/classroom?student=${student}`);const input=page.getByLabel('Message your student');await expect(input).toBeVisible();

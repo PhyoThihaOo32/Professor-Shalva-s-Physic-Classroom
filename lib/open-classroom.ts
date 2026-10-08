@@ -77,6 +77,7 @@ export async function messageOpenRoom(id:string,input:z.infer<typeof openMessage
   if(error instanceof AppError)throw error;
   const providerStatus=(error as {status?:unknown}|null)?.status;
   console.error(JSON.stringify({event:'student-conversation-failed',error:error instanceof Error?error.constructor.name:'unknown',reason:error instanceof Error&&error.message==='Student conversation did not pass its output checks after one repair.'?'reply validation':'provider or transport',...(typeof providerStatus==='number'?{status:providerStatus}:{})}));
+  if(providerStatus===401)throw new AppError('AI_AUTHENTICATION','OpenAI rejected the AI connection. Ask the app owner to update the API key. Your message and saved conversation are safe.',503);
   throw new AppError('PROVIDER_FAILURE','Your student could not finish that reply. Your conversation is saved; retry the message.',503);
  }
 }
