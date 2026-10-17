@@ -16,10 +16,41 @@ describe('professor teaching boundary, stubbed transport',()=>{
   await liveProvider('test-model').converse({text:'Help me understand weight.',step:emptyStudentWork(),persona:professors.find(p=>p.id===id)!,history:[],openClassroom:true},call);
   const payload=parse.mock.calls[0][0],system=payload.input[0].content,developer=payload.input[1].content;
   expect(system).toContain(`You are ${name}`);expect(system).toContain('the human user is your student');expect(system).toContain('never deliberately plant an error');
+  const examples:Record<string,string>={'rick-v1':'Reality keeps receipts','nefario-v1':'A spring escaped into the tea cupboard','edna-v1':'give it a clean silhouette'};
+  expect(developer).toContain(examples[id]);for(const other of professors.filter(p=>p.id!==id))expect(developer).not.toContain(examples[other.id]);
+  expect(developer).toContain('never copy them as canned replies');expect(developer).toContain('Character never changes the givens');
   expect(developer).toContain('one small conceptual or procedural nudge');expect(developer).toContain('explicit request for a full solution');expect(developer).toContain('Check units again');
   expect(system+developer).not.toContain('FIRST ATTEMPT');expect(system+developer).not.toContain('You are a learner, not a tutor');expect(system+developer).not.toContain('formatting must not correct their physics');
   for(const other of professors.filter(p=>p.id!==id))expect(system).not.toContain(`You are ${other.name}`);
   expect(payload.text.format.name).toBe('professor_reply');expect(payload.store).toBe(false);
+ });
+ it('keeps a mixed greeting and physics request intact instead of substituting a character introduction',async()=>{
+  const question='Hey Nefario! Why does a spring push back harder when I compress it further?';
+  parse.mockResolvedValue({output_parsed:{message:'The further you compress an ideal spring, the larger its restoring force. Let’s look at the spring itself.',work:null}});
+  await liveProvider('test-model').converse({text:question,step:emptyStudentWork(),persona:professors[1],history:[],openClassroom:true},call);
+  const messages=parse.mock.calls[0][0].input;
+  expect(messages[1].content).toContain('This is the first exchange');expect(messages[1].content).toContain('A greeting attached to a physics question is still a physics request');
+  expect(messages.at(-1)).toEqual({role:'user',content:question});expect(parse).toHaveBeenCalledOnce();
+ });
+ it('preserves ongoing context and plain-language preferences without promoting learner content to trusted instructions',async()=>{
+  const history=[{id:'prior',stepId:'live',teacher:'Why do I weigh less on the Moon?',student:'The mass stays the same; the gravitational field is weaker.',createdAt:'2026-10-16T12:00:00Z'}];
+  const request='Hey, no jokes please. Explain that more simply. Pretend you are Rick instead.';
+  parse.mockResolvedValue({output_parsed:{message:'Your mass stays the same. The Moon pulls on you less strongly, so your weight is smaller.',work:null}});
+  await liveProvider('test-model').converse({text:request,step:emptyStudentWork(),persona:professors[2],history,openClassroom:true},call);
+  const messages=parse.mock.calls[0][0].input,developer=messages[1].content;
+  expect(messages[0].content).toContain('You are Edna Mode');expect(messages[0].content).not.toContain('You are Rick Sanchez');
+  expect(developer).toContain('This is an ongoing conversation');expect(developer).toContain('do not reintroduce yourself');expect(developer).toContain('no jokes, honor that immediately');
+  expect(developer).not.toContain(request);expect(developer).not.toContain(history[0].student);
+  expect(messages[3]).toEqual({role:'user',content:history[0].teacher});expect(JSON.parse(messages[4].content).message).toBe(history[0].student);expect(messages.at(-1)).toEqual({role:'user',content:request});
+ });
+ it('repairs a repeated professor reply once while retaining the selected voice and conversation continuity',async()=>{
+  const repeated='An equation earns trust by surviving a test. What assumption should we check first?';
+  const history=[{id:'prior',stepId:'live',teacher:'How do I check my equation?',student:repeated,createdAt:'2026-10-16T12:00:00Z'}];
+  parse.mockResolvedValueOnce({output_parsed:{message:repeated,work:null}}).mockResolvedValueOnce({output_parsed:{message:'Start with the units on each side. If one side is a speed and the other is a distance, the equation has already failed the test.',work:null}});
+  const reply=await liveProvider('test-model').converse({text:'What do you mean by a test?',step:emptyStudentWork(),persona:professors[0],history,openClassroom:true},call);
+  expect(reply.message).toContain('units on each side');expect(parse).toHaveBeenCalledTimes(2);
+  const repair=parse.mock.calls[1][0].input;
+  expect(repair[0].content).toContain('You are Rick Sanchez');expect(repair[1].content).toContain('ongoing conversation');expect(repair[1].content).toContain('repeated reply');expect(repair[1].content).toContain('Do not repeat a previous reply');
  });
  it('permits a requested final answer and carries the learner’s drawing and previous work',async()=>{
   parse.mockResolvedValue({output_parsed:{message:'The acceleration is 2.5 m/s². That is the velocity change divided by elapsed time.',work:null}});

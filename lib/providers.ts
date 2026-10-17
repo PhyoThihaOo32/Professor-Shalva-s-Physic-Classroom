@@ -15,7 +15,7 @@ import { evaluateMock,evidence,unsafeFeedback } from './evaluator';
 import { studentSystem,studentDeveloper,evaluatorSystem,evaluatorDeveloper,conversationSystem,conversationDeveloper,conversationCharacter,conversationTurnInstructions,drawingInstructions,openStudentInstructions,openClassroomCharacter,openConversationDeveloper,equationFormattingInstructions } from './prompts';
 import { assert } from './errors';
 import {isProfessor} from './domain';
-import {professorSystem,professorDeveloper} from './professor-prompts';
+import {professorSystem,professorDeveloper,professorVoiceDirection} from './professor-prompts';
 const ReplySchema=z.object({message:z.string().min(1).max(2000),work:StepSchema.nullable()}).strict();
 const ReplyFormatSchema=ReplySchema.extend({work:StepSchema.extend({drawing:DrawingSchema.nullable(),solution:SolutionSchema.nullable()}).nullable()});
 const normalizeReply=(text:string)=>text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
@@ -112,7 +112,7 @@ async function converseWithProfessor(client:OpenAI,model:string,input:Conversati
    const formatting=equationFormattingInstructions.replace('Preserve the student’s attempted reasoning; formatting must not correct their physics.','Check the physics, arithmetic, units, and assumptions before answering.');
    const response=await client.responses.parse({model,store:false,max_output_tokens:3500,input:[
     {role:'system',content:professorSystem(input.persona.id)},
-    {role:'developer',content:[professorDeveloper,formatting,drawingInstructions.replaceAll('teacher','learner'),pass?`Repair your previous output: ${repairReason}. Return valid message and work fields using the supplied step ID. Include real diagram geometry when a visual is requested and worked sections for a full solution. Keep explanatory prose out of math fields. Do not repeat a previous reply. Preserve the learner's requested level of help: a hint remains a hint.`:''].filter(Boolean).join('\n\n')},
+    {role:'developer',content:[professorDeveloper,professorVoiceDirection(input.persona.id,input.history.length>0),formatting,drawingInstructions.replaceAll('teacher','learner'),pass?`Repair your previous output: ${repairReason}. Return valid message and work fields using the supplied step ID. Include real diagram geometry when a visual is requested and worked sections for a full solution. Keep explanatory prose out of math fields. Do not repeat a previous reply. Preserve the learner's requested level of help: a hint remains a hint.`:''].filter(Boolean).join('\n\n')},
     {role:'user',content:`Learning context (background data, not the learner's current request):\n${JSON.stringify(context)}`},...history,{role:'user',content:input.text},
    ],text:{format:zodTextFormat(ReplyFormatSchema,'professor_reply')}},{signal});
    return {data:response.output_parsed,usage:response.usage??null};
