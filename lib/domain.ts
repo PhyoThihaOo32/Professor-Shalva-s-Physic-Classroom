@@ -20,14 +20,18 @@ export const personas:Persona[] = [
  {id:'stewie-v1',name:'Stewie Griffin',tag:'The confident strategist',description:'Clever ideas, ambitious assumptions. Challenge Stewie to justify every step and test his conclusions.',voice:'I have a rather elegant approach. Let’s see whether the reasoning holds up.',weights:{ASSUMPTION:5,JUSTIFICATION:5,CONCLUSION:4,FORMULA:1},color:'#dcd7ed',avatar:{src:'/students/stewie.png',width:781,height:987},conversationLead:'Let’s make the reasoning explicit.',correctionReply:'Agreed. I’ve made that correction explicit and updated the dependent work.'},
 ];
 export const professors:Persona[] = [
- {id:'rick-v1',role:'professor',name:'Rick Sanchez',shortName:'Rick',tag:'Question everything',description:'Sharp wit, strange thought experiments, and a relentless “why?” Test your assumptions and discover the physics behind them.',voice:'Bring a question. We’ll test the assumptions before trusting the answer.',weights:{},color:'#c6e9dc'},
- {id:'frink-v1',role:'professor',name:'Professor Frink',shortName:'Professor Frink',tag:'Try it. Sketch it. Understand it.',description:'An enthusiastic inventor who turns tricky ideas into experiments, clear diagrams, and small, careful steps.',voice:'Let’s turn that question into an experiment we can understand.',weights:{},color:'#e6dfb5'},
- {id:'edna-v1',role:'professor',name:'Edna Mode',shortName:'Edna',tag:'Precision with a purpose',description:'Direct, perceptive, and wonderfully exacting. Build an elegant solution, with clean diagrams and no loose assumptions.',voice:'Show me the problem. We’ll give every line a purpose.',weights:{},color:'#decde7'},
+ {id:'rick-v1',role:'professor',name:'Rick Sanchez',shortName:'Rick',tag:'Question everything',description:'Sharp wit, strange thought experiments, and a relentless “why?” Test your assumptions and discover the physics behind them.',voice:'Bring a question. We’ll test the assumptions before trusting the answer.',weights:{},color:'#c6e9dc',avatar:{src:'/professors/rick.jpg',width:1600,height:898}},
+ {id:'nefario-v1',role:'professor',name:'Dr. Nefario',shortName:'Dr. Nefario',tag:'Tinker. Test. Try again.',description:'An absent-minded inventor with dry humor and a soft spot for odd gadgets. Sketch the mechanism, test an idea, and find what makes it tick.',voice:'Bring it to the lab. Let’s see what makes it tick.',weights:{},color:'#d7dec1',avatar:{src:'/professors/nefario.webp',width:1161,height:1040}},
+ {id:'edna-v1',role:'professor',name:'Edna Mode',shortName:'Edna',tag:'Precision with a purpose',description:'Direct, perceptive, and wonderfully exacting. Build an elegant solution, with clean diagrams and no loose assumptions.',voice:'Show me the problem. We’ll give every line a purpose.',weights:{},color:'#decde7',avatar:{src:'/professors/edna.jpeg',width:864,height:486}},
 ];
-export const sessionPersonas=[...personas,...professors,...legacyPersonas];
+// Preserve the identity of existing conversations; Frink is no longer selectable.
+export const legacyProfessors:Persona[]=[
+ {id:'frink-v1',role:'professor',name:'Professor Frink',shortName:'Professor Frink',tag:'Try it. Sketch it. Understand it.',description:'An enthusiastic inventor who turns tricky ideas into experiments, clear diagrams, and small, careful steps.',voice:'Let’s turn that question into an experiment we can understand.',weights:{},color:'#e6dfb5'},
+];
+export const sessionPersonas=[...personas,...professors,...legacyProfessors,...legacyPersonas];
 export function findPersona(id:string){return sessionPersonas.find(p=>p.id===id);}
-export function isProfessor(id:string){return professors.some(p=>p.id===id);}
-export function currentProfessorId(id:string|undefined){return professors.find(p=>p.id===id)?.id;}
+export function isProfessor(id:string){return [...professors,...legacyProfessors].some(p=>p.id===id);}
+export function currentProfessorId(id:string|undefined){return professors.find(p=>p.id===(id==='frink-v1'?'nefario-v1':id))?.id;}
 export function shortPersonaName(persona:Persona){return persona.shortName??persona.name.split(' ')[0];}
 export function currentStudentId(id:string|undefined){
  const successor:Record<string,string>={'milo-v1':'spongebob-v1','nora-v1':'bart-v1','theo-v1':'stewie-v1'};

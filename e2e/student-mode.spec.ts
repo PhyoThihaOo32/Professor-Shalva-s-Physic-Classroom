@@ -5,13 +5,16 @@ import type {Step} from '../lib/domain';
 
 const exampleWork:Step={id:'live',title:'From velocity to acceleration',text:'The car gains 20 m/s in 8 s.',equation:'a=2.5\\,\\mathrm{m/s^2}',value:2.5,unit:'m/s²',diagram:false,solution:[{title:'Find acceleration',explanation:'For constant acceleration, divide the change in velocity by the elapsed time.',formula:'a=\\frac{v_f-v_i}{t}',substitution:'a=\\frac{20-0}{8}',result:'a=2.5\\,\\mathrm{m/s^2}'}],drawing:{title:'Velocity increases with time',description:'The rising line shows velocity increasing from rest to 20 m/s over 8 s.',elements:[{kind:'line',x1:120,y1:460,x2:820,y2:460,color:'ink'},{kind:'line',x1:120,y1:460,x2:120,y2:100,color:'ink'},{kind:'line',x1:120,y1:460,x2:780,y2:140,color:'teal'},{kind:'text',x:780,y:530,text:'Time (s)',color:'ink'},{kind:'text',x:150,y:80,text:'Velocity (m/s)',color:'ink'}]}};
 
-for(const professor of [{id:'rick-v1',name:'Rick Sanchez',short:'Rick'},{id:'frink-v1',name:'Professor Frink',short:'Professor Frink'},{id:'edna-v1',name:'Edna Mode',short:'Edna'}]){
+for(const professor of [{id:'rick-v1',name:'Rick Sanchez',short:'Rick'},{id:'nefario-v1',name:'Dr. Nefario',short:'Dr. Nefario'},{id:'edna-v1',name:'Edna Mode',short:'Edna'}]){
  test(`${professor.name} opens a personal learning classroom, sends, resumes, and keeps the mode across navigation`,async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/roles');await page.getByRole('link',{name:/Be the student/}).click();await expect(page).toHaveURL(/\/professors$/);
   const chosen=page.getByRole('button',{name:new RegExp(professor.name)});await expect(chosen).toBeEnabled();await chosen.click();await expect(chosen).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('button',{name:/Professor Frink/})).toHaveCount(0);
+  await expect.poll(()=>page.locator('.professor-options img').evaluateAll(images=>images.length===3&&images.every(image=>(image as HTMLImageElement).complete&&(image as HTMLImageElement).naturalWidth>0))).toBe(true);
   if(professor.id==='rick-v1')await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/professor-selection-desktop.png',fullPage:true});
   await page.getByRole('link',{name:'Enter classroom',exact:true}).click();await expect(page).toHaveURL(new RegExp(`/learn\\?professor=${professor.id}$`));await expect(page.getByRole('heading',{name:`${professor.short}’s classroom`,exact:true})).toBeVisible();await expect(page.locator('.teacher-instinct')).toHaveCount(0);
+  await expect(page.getByRole('img',{name:`${professor.name} profile picture`,exact:true})).toBeVisible();
   const requests:{text:string;drawing?:unknown}[]=[];
   await page.route('**/api/classrooms/*/messages',async route=>{
    const body=route.request().postDataJSON();requests.push(body);const roomId=route.request().url().split('/').at(-2)!;
@@ -45,4 +48,11 @@ test('professor selection and classroom fit a phone, and switching back preserve
  await page.getByRole('button',{name:'Draw or annotate',exact:true}).click();await expect(page.getByRole('region',{name:'Drawing annotations'})).toBeVisible();await page.getByRole('button',{name:'Close drawing',exact:true}).click();
  await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/professor-classroom-phone.png',fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.goto('/roles');await page.getByRole('link',{name:/Be the teacher/}).click();await page.getByRole('button',{name:/Bart Simpson/}).click();await page.getByRole('link',{name:'Enter classroom',exact:true}).click();await expect(page.getByLabel('Message your student')).toBeVisible();await expect(page.locator('.teacher-instinct')).toBeVisible();await expect(page.getByRole('group',{name:'Learning help'})).toHaveCount(0);
+});
+
+test('an old Frink preference selects Nefario and uses the supplied profile photos',async({page})=>{
+ await page.addInitScript(()=>localStorage.setItem('chalklight-professor','frink-v1'));
+ await page.goto('/professors');const nefario=page.getByRole('button',{name:/Dr\. Nefario/});await expect(nefario).toHaveAttribute('aria-pressed','true');await expect(page.getByRole('button',{name:/Professor Frink/})).toHaveCount(0);
+ await expect(page.getByRole('link',{name:'Enter classroom',exact:true})).toHaveAttribute('href','/learn?professor=nefario-v1');
+ await expect(page.getByRole('img',{name:'Rick Sanchez profile picture'})).toHaveAttribute('src','/professors/rick.jpg');await expect(page.getByRole('img',{name:'Dr. Nefario profile picture'})).toHaveAttribute('src','/professors/nefario.webp');await expect(page.getByRole('img',{name:'Edna Mode profile picture'})).toHaveAttribute('src','/professors/edna.jpeg');
 });

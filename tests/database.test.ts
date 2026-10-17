@@ -15,7 +15,7 @@ const input=()=>({problemId:'water-in-the-bucket',personaId:'theo-v1' as const,d
 beforeEach(()=>{parse.mockReset();process.env.ALLOW_LIVE_AI='true';process.env.OPENAI_API_KEY='fake-test-no-network';process.env.OPENAI_MODEL='stubbed-model';process.env.SESSION_STARTS_PER_HOUR='10';process.env.MAX_MODEL_CALLS_PER_SESSION='20';process.env.SESSION_SPEND_LIMIT_CENTS='1000';process.env.DAILY_SPEND_LIMIT_CENTS='100000';process.env.AI_KEY_ENCRYPTION_SECRET='test-encryption-secret-with-at-least-thirty-two-characters';});
 afterAll(async()=>{if(identities.length)await db.guestIdentity.deleteMany({where:{id:{in:identities}}});await db.$disconnect();});
 describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestration, stubbed live transport',()=>{
- it.each(['rick-v1','frink-v1','edna-v1'] as const)('persists %s tutoring separately with ownership, replay, drawings, and no student error-review call',async personaId=>{
+ it.each(['rick-v1','nefario-v1','edna-v1'] as const)('persists %s tutoring separately with ownership, replay, drawings, and no student error-review call',async personaId=>{
   const {openRoom,messageOpenRoom,getOpenRoom}=await import('../lib/open-classroom');const owner=await who(),stranger=await who();
   const room=await openRoom({personaId,idempotencyKey:crypto.randomUUID()},owner),studentRoom=await openRoom({personaId:'bart-v1',idempotencyKey:crypto.randomUUID()},owner);
   expect(room.mode).toBe('student');expect(studentRoom.mode).toBe('teacher');expect(room.id).not.toBe(studentRoom.id);expect(parse).not.toHaveBeenCalled();

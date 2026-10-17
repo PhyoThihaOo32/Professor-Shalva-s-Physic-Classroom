@@ -34,7 +34,7 @@ describe('professor teaching boundary, stubbed transport',()=>{
   const drawing:BoardDrawing={title:'Velocity change',description:'Velocity increases to the right.',elements:[{kind:'arrow',x1:100,y1:400,x2:800,y2:200,color:'teal'}]};
   parse.mockResolvedValueOnce({output_parsed:{message:'Here is the motion.',work}}).mockResolvedValueOnce({output_parsed:{message:'The rising line shows the velocity increasing.',work:{...work,drawing}}});
   const result=await liveProvider('test-model').converse({text:'Draw the motion.',step:emptyStudentWork(),persona:professors[1],history:[],openClassroom:true},call);
-  expect(result.work?.drawing).toEqual(drawing);expect(parse).toHaveBeenCalledTimes(2);expect(parse.mock.calls[1][0].input[1].content).toContain('missing diagram geometry');expect(parse.mock.calls[1][0].input[0].content).toContain('You are Professor Frink');
+  expect(result.work?.drawing).toEqual(drawing);expect(parse).toHaveBeenCalledTimes(2);expect(parse.mock.calls[1][0].input[1].content).toContain('missing diagram geometry');expect(parse.mock.calls[1][0].input[0].content).toContain('You are Dr. Nefario');
  });
 });
 describe('live boundary with stubbed transport, no paid calls',()=>{

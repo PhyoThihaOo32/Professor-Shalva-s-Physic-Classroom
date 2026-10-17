@@ -14,7 +14,7 @@ import {resolveAi} from './ai-connection';
 import {liveProvider} from './providers';
 import {InstinctSchema,needsInstinctCheck,type TeacherInstinct} from './teacher-instinct';
 import {emptyStudentWork,type OpenClassroom,type OpenTurn} from './open-classroom-types';
-export const openSchema=z.object({personaId:z.enum(['bart-v1','spongebob-v1','stewie-v1','rick-v1','frink-v1','edna-v1']),idempotencyKey:z.string().min(8).max(100),fresh:z.boolean().optional()}).strict();
+export const openSchema=z.object({personaId:z.enum(['bart-v1','spongebob-v1','stewie-v1','rick-v1','nefario-v1','frink-v1','edna-v1']),idempotencyKey:z.string().min(8).max(100),fresh:z.boolean().optional()}).strict();
 export const openMessageSchema=z.object({revision:z.number().int().nonnegative(),idempotencyKey:z.string().min(8).max(100),text:z.string().trim().min(1).max(2000),drawing:DrawingSchema.optional()}).strict();
 const include={events:{where:{type:'open-message'},orderBy:[{createdAt:'asc' as const},{id:'asc' as const}],take:100}};
 async function loadRoom(id:string,who:Identity){const s=await db.session.findUnique({where:{id},include});assert(s&&owned(s,who)&&s.kind==='open-classroom','NOT_FOUND','Classroom not found.',404);return s;}

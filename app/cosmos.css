@@ -753,6 +753,8 @@ footer{gap:16px;flex-wrap:wrap}
 .entry-students .onboarding-bottom {margin-top:18px;padding-top:14px;gap:14px;}
 .entry-students .onboarding-bottom>.tiny {font-size:12px;color:var(--muted);}
 .professor-avatar {flex-shrink:0;overflow:hidden;border-radius:50%;box-shadow:0 0 0 4px #a7d6d510;}
+.character-avatar.professor-avatar img {inset:0;width:100%;height:100%;object-fit:cover;object-position:center;}
+.character-avatar.avatar-edna-v1 img {object-position:45% center;}
 .professor-empty-note {display:block;max-width:360px;margin-top:8px;font-size:12px;line-height:1.7;color:var(--muted);}
 .professor-help {display:flex;flex-wrap:wrap;gap:8px 20px;padding:8px 0 11px;}
 .professor-help button {min-height:34px;font-size:11px;color:#c8dbdf;transition:color .15s;}

@@ -24,8 +24,8 @@ export function WorkedSolution({work,hideText=false}:{work:Step;hideText?:boolea
 }
 export function Avatar({id,size=64}:{id:string;size?:number}){
  const persona=findPersona(id);
+ if(persona?.avatar)return <span className={`student-avatar character-avatar${persona.role==='professor'?' professor-avatar':''} avatar-${id}`} style={{'--avatar-size':`${size}px`,backgroundColor:persona.color} as CSSProperties}><Image src={persona.avatar.src} width={persona.avatar.width} height={persona.avatar.height} alt={`${persona.name} profile picture`} unoptimized loading="eager"/></span>;
  if(persona?.role==='professor')return <ProfessorPortrait id={id} name={persona.name} size={size} color={persona.color}/>;
- if(persona?.avatar)return <span className={`student-avatar character-avatar avatar-${id}`} style={{'--avatar-size':`${size}px`,backgroundColor:persona.color} as CSSProperties}><Image src={persona.avatar.src} width={persona.avatar.width} height={persona.avatar.height} alt={`${persona.name} profile picture`} unoptimized loading="eager"/></span>;
  const milo=id.startsWith('milo'),nora=id.startsWith('nora');
  const name=milo?'Milo Doodle':nora?'Nora Finch':'Theo Quill';
  return <svg className="student-avatar" width={size} height={size} viewBox="0 0 64 64" role="img" aria-label={`${name} original portrait`}>
