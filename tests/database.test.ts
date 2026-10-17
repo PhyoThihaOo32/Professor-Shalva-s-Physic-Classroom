@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import {describe,it,expect,vi,beforeEach,afterAll} from 'vitest';
+import type {BoardDrawing} from '../lib/drawing';
 const parse=vi.hoisted(()=>vi.fn());
 vi.mock('openai',()=>({default:class{responses={parse};}}));
 vi.mock('@/auth',()=>({auth:vi.fn()}));
@@ -14,6 +15,18 @@ const input=()=>({problemId:'water-in-the-bucket',personaId:'theo-v1' as const,d
 beforeEach(()=>{parse.mockReset();process.env.ALLOW_LIVE_AI='true';process.env.OPENAI_API_KEY='fake-test-no-network';process.env.OPENAI_MODEL='stubbed-model';process.env.SESSION_STARTS_PER_HOUR='10';process.env.MAX_MODEL_CALLS_PER_SESSION='20';process.env.SESSION_SPEND_LIMIT_CENTS='1000';process.env.DAILY_SPEND_LIMIT_CENTS='100000';process.env.AI_KEY_ENCRYPTION_SECRET='test-encryption-secret-with-at-least-thirty-two-characters';});
 afterAll(async()=>{if(identities.length)await db.guestIdentity.deleteMany({where:{id:{in:identities}}});await db.$disconnect();});
 describe.skipIf(!process.env.TEST_DATABASE_URL)('isolated PostgreSQL orchestration, stubbed live transport',()=>{
+ it.each(['rick-v1','frink-v1','edna-v1'] as const)('persists %s tutoring separately with ownership, replay, drawings, and no student error-review call',async personaId=>{
+  const {openRoom,messageOpenRoom,getOpenRoom}=await import('../lib/open-classroom');const owner=await who(),stranger=await who();
+  const room=await openRoom({personaId,idempotencyKey:crypto.randomUUID()},owner),studentRoom=await openRoom({personaId:'bart-v1',idempotencyKey:crypto.randomUUID()},owner);
+  expect(room.mode).toBe('student');expect(studentRoom.mode).toBe('teacher');expect(room.id).not.toBe(studentRoom.id);expect(parse).not.toHaveBeenCalled();
+  const work={id:'live',title:'Acceleration',text:'Acceleration is velocity change divided by elapsed time.',equation:'a=\\frac{20-0}{8}=2.5',value:2.5,unit:'m/s²',diagram:false,drawing:{title:'Motion to the right',description:'A velocity arrow points right.',elements:[{kind:'arrow',x1:100,y1:200,x2:500,y2:200,color:'teal'}]},solution:null};
+  parse.mockResolvedValue({output_parsed:{message:'Your formula is right. Check the division: 20 ÷ 8 is 2.5 m/s².',work}});
+  const body={revision:room.revision,idempotencyKey:crypto.randomUUID(),text:'A car goes from rest to 20 m/s in 8 s. Is its acceleration 4 m/s²?',drawing:work.drawing as BoardDrawing};
+  const result=await messageOpenRoom(room.id,body,owner);expect(result.session.discussion[0].work?.value).toBe(2.5);expect(result.session.discussion[0].teacherDrawing).toEqual(work.drawing);expect(result.session.discussion[0].instinctStatus).toBe('not-needed');expect(parse).toHaveBeenCalledOnce();
+  expect(await messageOpenRoom(room.id,body,owner)).toEqual(result);expect(parse).toHaveBeenCalledOnce();expect((await getOpenRoom(room.id,owner)).discussion).toEqual(result.session.discussion);expect((await getOpenRoom(studentRoom.id,owner)).discussion).toEqual([]);
+  expect((await openRoom({personaId,idempotencyKey:crypto.randomUUID()},owner)).id).toBe(room.id);await expect(getOpenRoom(room.id,stranger)).rejects.toThrow('not found');await expect(messageOpenRoom(room.id,{...body,revision:result.session.revision,idempotencyKey:crypto.randomUUID()},stranger)).rejects.toThrow('not found');
+  const stored=await db.session.findUniqueOrThrow({where:{id:room.id},include:{calls:true}});expect(stored.promptVersion).toContain('professors');expect(stored.calls).toHaveLength(1);expect(stored.calls[0].purpose).toBe('professor');
+ });
  it('opens an owned classroom without a preset problem or generation, restores it, and separates students',async()=>{
   const {openRoom,getOpenRoom}=await import('../lib/open-classroom');const owner=await who(),stranger=await who();
   const first=await openRoom({personaId:'bart-v1',idempotencyKey:crypto.randomUUID()},owner);

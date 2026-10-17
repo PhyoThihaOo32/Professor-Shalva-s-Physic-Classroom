@@ -29,7 +29,7 @@ test('welcome makes account actions visible and every workspace route requires s
  const welcome=page.locator('.welcome-account-actions');await expect(welcome.getByRole('link',{name:'Sign in',exact:true})).toBeVisible();await expect(welcome.getByRole('link',{name:'Create account',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'/Users/phyothihaoo/.cache/chalklight-physics-runtime/welcome-account-phone.png',fullPage:true});
  await welcome.getByRole('link',{name:'Create account',exact:true}).click();await expect(page).toHaveURL(/\/login\?mode=signup$/);await expect(page.getByRole('textbox',{name:'Name',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:/Continue as guest/})).toHaveCount(0);
- for(const path of ['/roles','/students','/classroom?student=bart-v1','/space','/library','/problems/ch2-two-trains','/library/guide','/settings','/sessions/private-room','/sessions/private-room/review','/owner']){
+ for(const path of ['/roles','/students','/professors','/learn?professor=rick-v1','/classroom?student=bart-v1','/space','/library','/problems/ch2-two-trains','/library/guide','/settings','/sessions/private-room','/sessions/private-room/review','/owner']){
   await page.goto(path);await expect(page).toHaveURL(/\/login\?next=/);expect(new URL(page.url()).searchParams.get('next')).toBe(path);await expect(page.getByLabel('Password',{exact:true})).toBeVisible();await expect(page.getByLabel('Message your student')).toHaveCount(0);
  }
  const headers={Origin:origin};

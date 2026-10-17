@@ -4,6 +4,7 @@ import {mathParts,plainMath,explanationLines,equationLines,equationFragments,isP
 import Image from 'next/image';
 import type {CSSProperties} from 'react';
 import {findPersona} from '@/lib/domain';
+import {ProfessorPortrait} from './professor-portrait';
 import type {ProblemData,Step} from '@/lib/domain';
 export function Equation({math,block=false}:{math:string;block?:boolean}){
  if(!math)return null;
@@ -23,6 +24,7 @@ export function WorkedSolution({work,hideText=false}:{work:Step;hideText?:boolea
 }
 export function Avatar({id,size=64}:{id:string;size?:number}){
  const persona=findPersona(id);
+ if(persona?.role==='professor')return <ProfessorPortrait id={id} name={persona.name} size={size} color={persona.color}/>;
  if(persona?.avatar)return <span className={`student-avatar character-avatar avatar-${id}`} style={{'--avatar-size':`${size}px`,backgroundColor:persona.color} as CSSProperties}><Image src={persona.avatar.src} width={persona.avatar.width} height={persona.avatar.height} alt={`${persona.name} profile picture`} unoptimized loading="eager"/></span>;
  const milo=id.startsWith('milo'),nora=id.startsWith('nora');
  const name=milo?'Milo Doodle':nora?'Nora Finch':'Theo Quill';

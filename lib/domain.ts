@@ -7,7 +7,7 @@ export type Criteria = z.infer<typeof CriteriaSchema>;
 export type Evaluation = z.infer<typeof EvaluationSchema> & { evidence: string };
 export type Template = z.infer<typeof TemplateSchema>;
 export type ProblemData=z.infer<typeof ProblemSchema>;
-export type Persona = { id:string; name:string; tag:string; description:string; voice:string; weights:Partial<Record<typeof families[number],number>>; color:string; avatar?:{src:string;width:number;height:number}; conversationLead?:string; correctionReply?:string };
+export type Persona = { id:string; name:string; tag:string; description:string; voice:string; weights:Partial<Record<typeof families[number],number>>; color:string; avatar?:{src:string;width:number;height:number}; conversationLead?:string; correctionReply?:string; role?:'professor'; shortName?:string };
 // Retain the original versions so saved sessions keep their student identity.
 export const legacyPersonas:Persona[] = [
  {id:'milo-v1',name:'Milo Doodle',tag:'The curious shortcut taker',description:'Friendly, distracted, and always ready to guess a formula. A little encouragement goes a long way.',voice:'Okay, I have an idea! Can you help me check it?',weights:{FORMULA:4,ARITHMETIC:4,UNITS:3,DIAGRAM:3},color:'#dbaa61'},
@@ -19,8 +19,16 @@ export const personas:Persona[] = [
  {id:'bart-v1',name:'Bart Simpson',tag:'The shortcut enthusiast',description:'Quick guesses, skipped checks. Get Bart to show his work and explain why his answer makes sense.',voice:'Okay, teach. I tried a shortcut. Want to check my work?',weights:{SIGN:4,FORMULA:3,UNITS:4,JUSTIFICATION:2},color:'#e9d5cb',avatar:{src:'/students/bart.png',width:200,height:298},conversationLead:'All right, teach. Let’s check my shortcut.',correctionReply:'Okay, that shortcut missed something. I fixed the step and will recheck what follows.'},
  {id:'stewie-v1',name:'Stewie Griffin',tag:'The confident strategist',description:'Clever ideas, ambitious assumptions. Challenge Stewie to justify every step and test his conclusions.',voice:'I have a rather elegant approach. Let’s see whether the reasoning holds up.',weights:{ASSUMPTION:5,JUSTIFICATION:5,CONCLUSION:4,FORMULA:1},color:'#dcd7ed',avatar:{src:'/students/stewie.png',width:781,height:987},conversationLead:'Let’s make the reasoning explicit.',correctionReply:'Agreed. I’ve made that correction explicit and updated the dependent work.'},
 ];
-export const sessionPersonas=[...personas,...legacyPersonas];
+export const professors:Persona[] = [
+ {id:'rick-v1',role:'professor',name:'Rick Sanchez',shortName:'Rick',tag:'Question everything',description:'Sharp wit, strange thought experiments, and a relentless “why?” Test your assumptions and discover the physics behind them.',voice:'Bring a question. We’ll test the assumptions before trusting the answer.',weights:{},color:'#c6e9dc'},
+ {id:'frink-v1',role:'professor',name:'Professor Frink',shortName:'Professor Frink',tag:'Try it. Sketch it. Understand it.',description:'An enthusiastic inventor who turns tricky ideas into experiments, clear diagrams, and small, careful steps.',voice:'Let’s turn that question into an experiment we can understand.',weights:{},color:'#e6dfb5'},
+ {id:'edna-v1',role:'professor',name:'Edna Mode',shortName:'Edna',tag:'Precision with a purpose',description:'Direct, perceptive, and wonderfully exacting. Build an elegant solution, with clean diagrams and no loose assumptions.',voice:'Show me the problem. We’ll give every line a purpose.',weights:{},color:'#decde7'},
+];
+export const sessionPersonas=[...personas,...professors,...legacyPersonas];
 export function findPersona(id:string){return sessionPersonas.find(p=>p.id===id);}
+export function isProfessor(id:string){return professors.some(p=>p.id===id);}
+export function currentProfessorId(id:string|undefined){return professors.find(p=>p.id===id)?.id;}
+export function shortPersonaName(persona:Persona){return persona.shortName??persona.name.split(' ')[0];}
 export function currentStudentId(id:string|undefined){
  const successor:Record<string,string>={'milo-v1':'spongebob-v1','nora-v1':'bart-v1','theo-v1':'stewie-v1'};
  const current=id?successor[id]??id:undefined;

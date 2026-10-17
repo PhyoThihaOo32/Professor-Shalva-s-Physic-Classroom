@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { db } from './db';
 import { identity,checkOrigin,requireOwner,requireUser } from './security';
 import { AppError,assert } from './errors';
-import { personas,publicProblem } from './domain';
+import { personas,professors,publicProblem } from './domain';
 import { createSchema,mutationSchema,createSession,getSession,mutateSession,json,loadSession,sessionDTO } from './sessions';
 import {connectionSchema,connectionStatus,saveConnection,removeConnection,testConnection} from './ai-connection';
 import {accountStatus,completeLogin,completeLoginSchema,resetGuestCookie,conversationHistory,deleteConversation} from './account';
@@ -36,7 +36,7 @@ export async function handle(request:Request){
   requireUser(who);
   if(path[0]==='account'&&path[1]==='conversations'&&path.length===2&&method==='GET')return ok(await conversationHistory(who));
   if(path[0]==='account'&&path[1]==='conversations'&&path.length===3&&method==='DELETE')return ok(await deleteConversation(path[2],who));
-  if(path[0]==='config'&&method==='GET')return ok({personas,liveEnabled:(await connectionStatus(who)).configured,owner:who.owner,authenticationConfigured:!!process.env.AUTH_GITHUB_ID,identity:who.kind});
+  if(path[0]==='config'&&method==='GET')return ok({personas,professors,liveEnabled:(await connectionStatus(who)).configured,owner:who.owner,authenticationConfigured:!!process.env.AUTH_GITHUB_ID,identity:who.kind});
   if(path[0]==='ai-connection'){
    if(method==='GET'&&!path[1])return ok(await connectionStatus(who));
    if(method==='POST'&&!path[1])return ok(await saveConnection(connectionSchema.parse(await readBody(request)),who));

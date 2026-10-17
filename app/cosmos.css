@@ -106,15 +106,15 @@ input[type=range], input[type=checkbox] { accent-color: #86d8ca; }
   backdrop-filter: blur(16px);
 }
 .role-choice:hover, .student-choice:hover { background: linear-gradient(145deg, #476770f2, #3a505eec); }
-.role-choice.future { background: linear-gradient(145deg, #57516fe8, #3b475bee); border-color: #b9a9de40; }
-.role-choice.future:hover { background: linear-gradient(145deg, #615876ee, #445363ee); }
+.role-choice.student-role { background: linear-gradient(145deg, #57516fe8, #3b475bee); border-color: #b9a9de40; }
+.role-choice.student-role:hover { background: linear-gradient(145deg, #615876ee, #445363ee); }
 .role-icon {
   background: #8ed7c529; color: #a6e7d6; border-radius: 50%;
   box-shadow: 0 0 0 5px #8ed7c50b, inset 0 0 0 1px #93d5c546;
 }
-.future .role-icon { background: #b2a3db25; color: #d3c7ee; box-shadow: 0 0 0 5px #b2a3db0b; }
+.student-role .role-icon { background: #b2a3db25; color: #d3c7ee; box-shadow: 0 0 0 5px #b2a3db0b; }
 .role-next { color: #9adecf; }
-.future .role-next { color: #d2bce8; }
+.student-role .role-next { color: #d2bce8; }
 .student-choice.selected { background: linear-gradient(145deg, #40676ce8, #4f536fec); border-color: #9edacc90; box-shadow: 0 8px 30px #18313b20; }
 .student-choice-top>.student-avatar, .room-heading>.student-avatar, .classroom-student>.student-avatar { border-radius: 50%; box-shadow: 0 0 0 5px #a7d6cc10, 0 0 0 1px #a7d6cc4d; }
 .choice-circle { border-color: #98bcb3; color: #b3edda; }
@@ -472,7 +472,7 @@ select { color-scheme: light; }
 .sidebar-toggle{color:#e0d7f0;background:#c5b0e60d}
 .sidebar-toggle:hover{background:#c5b0e621}
 .role-choice,.student-choice{background:var(--lofi-choice);border-color:#c1dfdc4a}
-.role-choice.future{background:var(--lofi-choice-future);border-color:#e3bef348}
+.role-choice.student-role{background:var(--lofi-choice-future);border-color:#e3bef348}
 .student-choice:nth-child(2){background:linear-gradient(145deg,#9b798d65,#676c947d)}
 .student-choice:nth-child(3){background:linear-gradient(145deg,#897ca66e,#546d8780)}
 .role-choice:hover,.student-choice:hover{border-color:#cfe6e98c;box-shadow:0 8px 30px #aaa0d522;background:var(--lofi-choice-hover)}
@@ -706,9 +706,9 @@ footer{gap:16px;flex-wrap:wrap}
 .entry-astronaut .role-options {margin-left:auto;margin-right:auto;}
 .entry-astronaut .role-page h1,.entry-astronaut .role-page>.eyebrow,.entry-astronaut .role-page>.subtitle {text-align:center;}
 .entry-astronaut .role-choice {background:var(--lofi-choice);backdrop-filter:blur(8px);border:1px solid #c1dfdc4a;box-shadow:0 12px 35px #26314418;}
-.entry-astronaut .role-choice.future {background:var(--lofi-choice-future);border-color:#e3bef348;}
+.entry-astronaut .role-choice.student-role {background:var(--lofi-choice-future);border-color:#e3bef348;}
 .entry-astronaut .role-choice:hover {background:var(--lofi-choice-hover);border-color:#cfe6e98c;}
-.entry-astronaut .role-choice.future:hover {background:var(--lofi-choice-hover);}
+.entry-astronaut .role-choice.student-role:hover {background:var(--lofi-choice-hover);}
 .entry-astronaut .role-choice p {color:var(--muted);}
 @media(max-width:600px){
  .welcome-hero {min-height:450px;}
@@ -752,6 +752,14 @@ footer{gap:16px;flex-wrap:wrap}
 .entry-students .student-choice p {font-size:12px;line-height:1.6;margin-top:8px;color:var(--muted);}
 .entry-students .onboarding-bottom {margin-top:18px;padding-top:14px;gap:14px;}
 .entry-students .onboarding-bottom>.tiny {font-size:12px;color:var(--muted);}
+.professor-avatar {flex-shrink:0;overflow:hidden;border-radius:50%;box-shadow:0 0 0 4px #a7d6d510;}
+.professor-empty-note {display:block;max-width:360px;margin-top:8px;font-size:12px;line-height:1.7;color:var(--muted);}
+.professor-help {display:flex;flex-wrap:wrap;gap:8px 20px;padding:8px 0 11px;}
+.professor-help button {min-height:34px;font-size:11px;color:#c8dbdf;transition:color .15s;}
+.professor-help button:hover:not(:disabled) {color:var(--lofi-mint);}
+.professor-help button:disabled {opacity:.4;cursor:default;}
+.learning-classroom .classroom-empty p {margin:0;}
+.learning-classroom .board-conversation>.conversation-log {padding-right:0;}
 @media(max-width:700px){
  .entry-students .onboarding-header {padding:10px 20px;}
  .entry-students .entry-progress {width:calc(100% - 40px);padding:8px 0;}

@@ -4,7 +4,7 @@ export function accountDestination(value?:string):string|undefined{
  try{
   const url=new URL(value,'https://classroom.invalid');
   if(url.origin!=='https://classroom.invalid'||url.hash)return;
-  const paths=['/roles','/students','/space','/classroom','/settings','/owner','/library'];
+  const paths=['/roles','/students','/professors','/learn','/space','/classroom','/settings','/owner','/library'];
   if(!paths.includes(url.pathname)&&!/^\/(?:problems|sessions)\/[a-zA-Z0-9_-]+(?:\/review)?$/.test(url.pathname)&&url.pathname!=='/library/guide')return;
   return url.pathname+url.search;
  }catch{return;}

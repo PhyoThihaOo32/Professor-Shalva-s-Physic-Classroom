@@ -3,12 +3,40 @@ const parse=vi.hoisted(()=>vi.fn());
 vi.mock('openai',()=>({default:class{responses={parse};}}));
 import {liveProvider,type CallRecorder} from '../lib/providers';
 import {demoProblems} from '../lib/content';
-import {personas} from '../lib/domain';
+import {personas,professors} from '../lib/domain';
+import {emptyStudentWork} from '../lib/open-classroom-types';
 import type {BoardDrawing} from '../lib/drawing';
 import type {DiscussionTurn} from '../lib/domain';
 import {approvedAttempt,planErrors} from '../lib/planner';
 const call:CallRecorder=async(_purpose,run)=>(await run(AbortSignal.timeout(1000))).data;
 beforeEach(()=>{parse.mockReset();process.env.OPENAI_API_KEY='test-fake-no-network';});
+describe('professor teaching boundary, stubbed transport',()=>{
+ it.each(professors.map(p=>[p.id,p.name]))('uses a separate teaching role for %s',async(id,name)=>{
+  parse.mockResolvedValue({output_parsed:{message:'Start by distinguishing mass from weight. Which one depends on gravity?',work:null}});
+  await liveProvider('test-model').converse({text:'Help me understand weight.',step:emptyStudentWork(),persona:professors.find(p=>p.id===id)!,history:[],openClassroom:true},call);
+  const payload=parse.mock.calls[0][0],system=payload.input[0].content,developer=payload.input[1].content;
+  expect(system).toContain(`You are ${name}`);expect(system).toContain('the human user is your student');expect(system).toContain('never deliberately plant an error');
+  expect(developer).toContain('one small conceptual or procedural nudge');expect(developer).toContain('explicit request for a full solution');expect(developer).toContain('Check units again');
+  expect(system+developer).not.toContain('FIRST ATTEMPT');expect(system+developer).not.toContain('You are a learner, not a tutor');expect(system+developer).not.toContain('formatting must not correct their physics');
+  for(const other of professors.filter(p=>p.id!==id))expect(system).not.toContain(`You are ${other.name}`);
+  expect(payload.text.format.name).toBe('professor_reply');expect(payload.store).toBe(false);
+ });
+ it('permits a requested final answer and carries the learner’s drawing and previous work',async()=>{
+  parse.mockResolvedValue({output_parsed:{message:'The acceleration is 2.5 m/s². That is the velocity change divided by elapsed time.',work:null}});
+  const drawing:BoardDrawing={title:'My motion sketch',description:'A car moving right',elements:[{kind:'arrow',x1:100,y1:200,x2:500,y2:200,color:'teal'}]};
+  const history=[{id:'previous',stepId:'live',teacher:'I think 20 divided by 8 is 4.',student:'Check that division before choosing the units.',createdAt:'2026-10-16T12:00:00Z'}];
+  await liveProvider('test-model').converse({text:'Show the final answer.',step:emptyStudentWork(),persona:professors[0],history,openClassroom:true,teacherDrawing:drawing},call);
+  expect(parse).toHaveBeenCalledOnce();const payload=parse.mock.calls[0][0],context=JSON.parse(payload.input[2].content.split('\n').slice(1).join('\n'));
+  expect(context.mode).toBe('student');expect(context.learnerDrawing).toEqual(drawing);expect(context.professor.id).toBe('rick-v1');expect(payload.input[3].content).toContain('20 divided by 8');expect(payload.input.at(-1).content).toBe('Show the final answer.');
+ });
+ it('repairs a missing requested diagram without falling back to student instructions',async()=>{
+  const work={...emptyStudentWork(),title:'Acceleration',text:'The velocity changes by 20 m/s over 8 s.',equation:'a=2.5',value:2.5,unit:'m/s²'};
+  const drawing:BoardDrawing={title:'Velocity change',description:'Velocity increases to the right.',elements:[{kind:'arrow',x1:100,y1:400,x2:800,y2:200,color:'teal'}]};
+  parse.mockResolvedValueOnce({output_parsed:{message:'Here is the motion.',work}}).mockResolvedValueOnce({output_parsed:{message:'The rising line shows the velocity increasing.',work:{...work,drawing}}});
+  const result=await liveProvider('test-model').converse({text:'Draw the motion.',step:emptyStudentWork(),persona:professors[1],history:[],openClassroom:true},call);
+  expect(result.work?.drawing).toEqual(drawing);expect(parse).toHaveBeenCalledTimes(2);expect(parse.mock.calls[1][0].input[1].content).toContain('missing diagram geometry');expect(parse.mock.calls[1][0].input[0].content).toContain('You are Professor Frink');
+ });
+});
 describe('live boundary with stubbed transport, no paid calls',()=>{
  it('repairs exactly once and enforces store:false and strict format',async()=>{const p=demoProblems[2].data,persona=personas[1],plan=planErrors(p,persona,'guided');parse.mockResolvedValueOnce({output_parsed:{steps:[],greeting:'unapproved'}}).mockResolvedValueOnce({output_parsed:{steps:approvedAttempt(p,plan),greeting:persona.voice},usage:{output_tokens:10}});const a=await liveProvider('test-model').generate(p,plan,persona,call);expect(a.steps).toHaveLength(8);expect(parse).toHaveBeenCalledTimes(2);expect(parse.mock.calls[0][0].store).toBe(false);expect(parse.mock.calls[0][0].text.format.strict).toBe(true);expect(parse.mock.calls[0][0].tools).toBeUndefined();});
  it('fails after bounded repair with no mock substitution',async()=>{parse.mockResolvedValue({output_parsed:{steps:[],greeting:'bad'}});await expect(liveProvider('test-model').generate(demoProblems[0].data,[],personas[0],call)).rejects.toThrow('one repair');expect(parse).toHaveBeenCalledTimes(2);});

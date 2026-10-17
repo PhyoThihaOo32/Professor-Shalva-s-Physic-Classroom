@@ -14,6 +14,8 @@ import { approvedAttempt,validateAttempt } from './planner';
 import { evaluateMock,evidence,unsafeFeedback } from './evaluator';
 import { studentSystem,studentDeveloper,evaluatorSystem,evaluatorDeveloper,conversationSystem,conversationDeveloper,conversationCharacter,conversationTurnInstructions,drawingInstructions,openStudentInstructions,openClassroomCharacter,openConversationDeveloper,equationFormattingInstructions } from './prompts';
 import { assert } from './errors';
+import {isProfessor} from './domain';
+import {professorSystem,professorDeveloper} from './professor-prompts';
 const ReplySchema=z.object({message:z.string().min(1).max(2000),work:StepSchema.nullable()}).strict();
 const ReplyFormatSchema=ReplySchema.extend({work:StepSchema.extend({drawing:DrawingSchema.nullable(),solution:SolutionSchema.nullable()}).nullable()});
 const normalizeReply=(text:string)=>text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
@@ -58,6 +60,7 @@ export function liveProvider(model:string,apiKey=process.env.OPENAI_API_KEY):Pro
    return InstinctSchema.parse(output);
   },
   async converse(input,call){
+   if(isProfessor(input.persona.id))return converseWithProfessor(client,model,input,call);
    if(unsafeFeedback(input.text))return {message:'Let’s stay with the visible step. Could you explain how you would check it?',work:null};
    let repairReason='';
    for(let pass=0;pass<2;pass++){
@@ -96,5 +99,27 @@ export function liveProvider(model:string,apiKey=process.env.OPENAI_API_KEY):Pro
    assert(parsed,'PROVIDER_FAILURE','The independent evaluator returned no valid result after one repair.',503);
    return {...parsed,evidence:evidence(parsed.verdict,reference,!!template)};
   }
- };
+};
+}
+
+async function converseWithProfessor(client:OpenAI,model:string,input:ConversationInput,call:CallRecorder):Promise<ConversationResult>{
+ let repairReason='';
+ for(let pass=0;pass<2;pass++){
+  const output=await call(pass?'professor-repair':'professor',async signal=>{
+   const recent=input.history.slice(-12),visible=input.history.length>12?[input.history[0],...recent]:recent;
+   const history=visible.flatMap(turn=>[{role:'user' as const,content:'teacherDrawing' in turn&&turn.teacherDrawing?JSON.stringify({message:turn.teacher,drawing:turn.teacherDrawing}):turn.teacher},{role:'assistant' as const,content:JSON.stringify({message:turn.student,work:'work' in turn?turn.work??null:null})}]);
+   const context={mode:'student',professor:{id:input.persona.id,name:input.persona.name},lastWork:input.step,learnerDrawing:input.teacherDrawing};
+   const formatting=equationFormattingInstructions.replace('Preserve the student’s attempted reasoning; formatting must not correct their physics.','Check the physics, arithmetic, units, and assumptions before answering.');
+   const response=await client.responses.parse({model,store:false,max_output_tokens:3500,input:[
+    {role:'system',content:professorSystem(input.persona.id)},
+    {role:'developer',content:[professorDeveloper,formatting,drawingInstructions.replaceAll('teacher','learner'),pass?`Repair your previous output: ${repairReason}. Return valid message and work fields using the supplied step ID. Include real diagram geometry when a visual is requested and worked sections for a full solution. Keep explanatory prose out of math fields. Do not repeat a previous reply. Preserve the learner's requested level of help: a hint remains a hint.`:''].filter(Boolean).join('\n\n')},
+    {role:'user',content:`Learning context (background data, not the learner's current request):\n${JSON.stringify(context)}`},...history,{role:'user',content:input.text},
+   ],text:{format:zodTextFormat(ReplyFormatSchema,'professor_reply')}},{signal});
+   return {data:response.output_parsed,usage:response.usage??null};
+  });
+  const parsed=ReplySchema.safeParse(output);repairReason=parsed.success?replyIssue(parsed.data,input.step,input.history,input.text)??'':'invalid reply structure';
+  if(parsed.success&&!repairReason)return parsed.data;
+  console.warn(JSON.stringify({event:'professor-reply-format',attempt:pass+1,reason:repairReason}));
+ }
+ throw new Error('Professor conversation did not pass its output checks after one repair.');
 }
