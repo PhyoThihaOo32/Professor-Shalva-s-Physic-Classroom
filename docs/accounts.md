@@ -11,6 +11,8 @@ Implemented routes: `/login` and `/space`. Email/password signup and sign-in use
 4. In the Vercel project’s **Settings → Environment Variables**, add `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` for **Production**. Keep the secret private and server-only. Preserve the existing `AUTH_SECRET`, database, shared OpenAI, and encryption settings.
 5. Redeploy the project. Check `/api/auth/providers` for the Google provider, then test **Continue with Google** using a consenting test account. In Google’s testing audience, add that account as a test user if required; configure the intended audience before public use.
 
+The dedicated Google Cloud project is `professor-shalva-classroom`. Use the public privacy URL `https://professor-shalvas-physic-classroom.vercel.app/privacy` in Google Auth Platform branding. The login screen links to this page, and it remains readable without a session or a working account-status request. Creating the Google configuration requires the owner's acceptance of Google's API Services User Data Policy; do not submit that agreement without approval. Keep OAuth client values out of source control, screenshots, and diagnostic output.
+
 For local testing, register `http://127.0.0.1:3000/api/auth/callback/google` separately. Do not point production at a local callback or expose secrets with `NEXT_PUBLIC_` names. Auth.js uses Google’s standard `openid email profile` scopes and accepts verified Google emails. It does not need Gmail or Drive access. [Google’s credential guide](https://developers.google.com/identity/protocols/oauth2/web-server#creatingcred), [Auth.js Google configuration](https://authjs.dev/getting-started/providers/google).
 
 ## Entry flow

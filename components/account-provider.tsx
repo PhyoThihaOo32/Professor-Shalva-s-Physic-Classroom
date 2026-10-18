@@ -33,7 +33,7 @@ export function AccountProvider({children}:{children:React.ReactNode}){
  // remembering an old account or replacing the sign-in form with Welcome back.
  useEffect(()=>{let active=true;queueMicrotask(()=>{if(active)void load(path==='/login');});return()=>{active=false;};},[path,load]);
  const refresh=useCallback(async(options?:{signedOut:boolean})=>{signedOut.current=!!options?.signedOut;await load(true);channelRef.current?.postMessage('changed');},[load]);
- const publicPage=path==='/'||path==='/login';
+ const publicPage=path==='/'||path==='/login'||path==='/privacy';
  useEffect(()=>{if(!publicPage&&!loading&&!account?.user)router.replace(loginHref(signedOut.current?undefined:path+window.location.search));},[publicPage,loading,account?.user,path,router]);
  const scope=publicPage?'public':account?`${account.identity.kind}:${account.identity.id}`:'checking';
  return <AccountContext.Provider value={{account,loading,refresh}}><Fragment key={scope}>{publicPage||account?.user?children:<div className="account-opening" role="status">Opening your classroom…</div>}</Fragment></AccountContext.Provider>;
