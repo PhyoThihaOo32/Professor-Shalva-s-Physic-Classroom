@@ -30,9 +30,11 @@ There is no guest entry option. The legacy guest cookie exists only to recover p
 - Account switches remount the displayed workspace; other tabs receive an identity-change event. The root radio and original offline audio remain outside this boundary.
 - New conversation creation is idempotent. **My space** shows the newest 60 conversations; all owned older records remain available through saved links or Settings export.
 
-Passwords cannot currently be reset through email, and password account emails are not verified. An email delivery/recovery flow is a future addition. Google sign-in cannot be tested end to end until the project’s OAuth client is configured; storage, isolation, and provider-subject handling are tested independently.
+Passwords cannot currently be reset through email, and password account emails are not verified. An email delivery/recovery flow is a future addition. Google sign-in is configured in Production; local automated checks still exercise storage, isolation, and provider-subject handling independently. Existing password accounts should connect Google from Settings while signed in so their immutable account ID and conversation ownership are preserved.
 
 ## Test plan and release checks
+
+On October 18, 2026, the production Google provider was connected using sensitive Vercel variables and published for external users with only basic identity, email, and profile scopes. Live browser verification linked an existing password account from Settings, confirmed the Google-connected state, signed out, signed back in with Google, and confirmed that the same saved conversation list returned. No paid AI calls were needed. The public privacy page, phone login layout, and anonymous protection of workspace routes also passed three focused browser checks; the build, types, and scoped lint passed.
 
 | Area | Coverage |
 | --- | --- |
