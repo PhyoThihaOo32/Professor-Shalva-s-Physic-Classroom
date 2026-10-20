@@ -2,6 +2,20 @@
 
 # Live conversations and revised work
 
+## Shared server connection
+
+Configure `OPENAI_API_KEY`, `OPENAI_MODEL`, and `ALLOW_LIVE_AI=true` in the server environment. Shared access takes precedence over older encrypted personal connections; those remain available when shared access is not configured. The classroom reports connection status, while Settings has no key/model editor. Never expose a key through `NEXT_PUBLIC_`, browser storage, logs, or source control.
+
+Requests use the server-side Responses SDK, strict structured output, `store:false`, and bounded call/deadline/spending controls. Problem content, corrections, and conversation context are sent to OpenAI. `store:false` does not guarantee zero provider retention. API billing is separate from ChatGPT subscriptions. See [development](development.md) for setup and [accounts](accounts.md) for ownership.
+
+Paid evaluation remains explicitly opt-in:
+
+```sh
+EVAL_MAX_CALLS=66 EVAL_BUDGET_CENTS=3300 npm run eval:live -- --confirm-paid
+```
+
+This can spend money. It exercises 18 initial attempts and 36 labeled corrections, with configurable call and budget caps; repairs can exhaust the cap early. Actual results and usage are written to `docs/reports/evaluation-live.json`. The free mock harness writes `docs/reports/evaluation-mock.json` instead.
+
 ## Free-question live classroom — October 7, 2026
 
 The current Classroom route opens a separate conversation for the selected student with no assigned chapter, problem, authored steps, or initial greeting. The teacher provides a question through the bottom input. The room resumes independently from the read-only Problems shelf; browsing a question or solution never selects a live problem. Earlier saved problem sessions remain accessible at their session routes.

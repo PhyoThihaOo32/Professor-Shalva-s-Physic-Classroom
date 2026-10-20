@@ -10,7 +10,7 @@ test('one guide icon opens a separate reminder page without changing the classro
  await expect(page.locator('.problem-list .problem-guide-link')).toHaveCount(0);
  const bounds=await icon.boundingBox(),heading=await page.getByRole('heading',{name:'Problems',exact:true}).boundingBox();
  expect(bounds!.x).toBeGreaterThan(heading!.x+heading!.width);expect(bounds!.width).toBe(40);
- await page.screenshot({path:'docs/problems-guide-icon.png',fullPage:true});
+ await page.screenshot({path:'docs/screenshots/problems-guide-icon.png',fullPage:true});
  await icon.press('Enter');await expect(page).toHaveURL(/\/library\/guide\?student=stewie-v1$/);
  await expect(page.getByRole('heading',{name:'Professor Shalva’s guide',exact:true})).toBeVisible();
  await expect(page.locator('.problem-guide-steps li')).toHaveCount(9);
@@ -19,13 +19,13 @@ test('one guide icon opens a separate reminder page without changing the classro
  const picture=page.locator('.guide-animation img');
  await expect.poll(()=>picture.evaluate(img=>({loaded:(img as HTMLImageElement).complete,width:(img as HTMLImageElement).naturalWidth,src:(img as HTMLImageElement).currentSrc}))).toEqual({loaded:true,width:500,src:`${process.env.E2E_BASE_URL??'http://127.0.0.1:3100'}/images/problem-guide-space.gif`});
  const palette=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());expect(palette).toBe('#3d4b65');
- await page.screenshot({path:'docs/problem-solving-guide.png',fullPage:true});
+ await page.screenshot({path:'docs/screenshots/problem-solving-guide.png',fullPage:true});
  await page.reload();await expect(page.locator('.problem-guide-steps li')).toHaveCount(9);
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await expect.poll(()=>picture.evaluate(img=>(img as HTMLImageElement).currentSrc)).toContain('problem-guide-space-still.png');
  await expect.poll(()=>picture.evaluate(img=>(img as HTMLImageElement).complete)).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:'docs/problem-solving-guide-mobile.png',fullPage:true});
+ await page.screenshot({path:'docs/screenshots/problem-solving-guide-mobile.png',fullPage:true});
  await page.getByRole('link',{name:'Problems',exact:true}).last().click();
  await expect(page).toHaveURL(/\/library\?student=stewie-v1$/);await expect(icon).toBeVisible();
  expect(mutations).toEqual([]);

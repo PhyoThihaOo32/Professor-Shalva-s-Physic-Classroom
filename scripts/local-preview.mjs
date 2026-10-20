@@ -23,7 +23,7 @@ const entries=await readdir(source,{withFileTypes:true});
 for(const entry of await readdir(target)){if(!['.chalklight-preview-source','node_modules'].includes(entry))await rm(join(target,entry),{recursive:true,force:true});}
 for(const entry of entries){if(ignored.has(entry.name)||entry.name.startsWith('.next')||entry.name.startsWith('.chalklight')||entry.name.endsWith('.tsbuildinfo'))continue;await cp(join(source,entry.name),join(target,entry.name),{recursive:true,dereference:true});}
 try{await stat(join(target,'node_modules'));}catch{await symlink(join(source,'node_modules'),join(target,'node_modules'),'dir');}
-await mkdir(join(target,'docs'),{recursive:true});
+await mkdir(join(target,'docs','screenshots'),{recursive:true});
 try{await chmod(join(target,'.env'),0o600);}catch(error){if(error.code!=='ENOENT')throw error;}
 console.log(`Local preview snapshot: ${relative(homedir(),target)}. Restart this command after editing the source.`);
 const child=spawn(process.execPath,[join(target,'node_modules','next','dist','bin','next'),'dev','--webpack','--hostname','127.0.0.1'],{cwd:target,stdio:'inherit',env:process.env});
