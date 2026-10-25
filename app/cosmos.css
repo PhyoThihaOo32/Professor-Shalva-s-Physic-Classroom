@@ -596,17 +596,48 @@ footer{gap:16px;flex-wrap:wrap}
 .reference-library .library-chapter-heading h2 {font-size:21px;max-width:520px;}
 .reference-library .problem-row {min-height:86px;}
 .reference-library .problem-row h3 {font-size:16px;}
+.problem-item {border-bottom:1px solid var(--line);}
+.problem-summary {margin:0;font-weight:inherit;}
+.reference-library .problem-toggle {width:100%;border:0;border-radius:0;background:transparent;text-align:left;color:var(--ink);cursor:pointer;}
+.problem-row-copy {display:block;min-width:0;}
+.problem-title {display:block;font-size:16px;line-height:1.5;font-weight:650;}
+.problem-subtitle {display:block;color:var(--muted);font-size:12px;line-height:1.7;margin-top:5px;font-weight:400;}
+.problem-toggle>svg {margin-left:auto;flex-shrink:0;transition:transform .2s;color:var(--lofi-mint);}
+.problem-toggle[aria-expanded="true"]>svg {transform:rotate(180deg);}
+.reference-library .problem-toggle:hover {background:#b2b4db08;}
+.reference-library .problem-toggle:focus-visible {outline:2px solid var(--lofi-mint);outline-offset:-2px;border-radius:8px;}
+.embedded-reference {padding:8px 0 28px;min-width:0;}
+.reference-meta {display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.reference-meta .eyebrow {margin-bottom:13px;}
+.reference-permalink {display:inline-flex;align-items:center;gap:5px;flex-shrink:0;color:var(--lofi-lavender);font-size:11px;min-height:36px;margin-bottom:8px;}
+.embedded-reference .reference-edition {margin:0 0 14px;}
+.embedded-reference .reference-question {padding:24px;border-radius:18px;}
+.embedded-reference .reference-solution {margin-top:24px;}
+.embedded-reference .reference-notes {margin-bottom:0;}
 .reference-library .pending-problem {align-items:center;}
-.problem-chapters {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 24px;}
-.problem-chapters a {display:flex;align-items:center;gap:10px;min-height:52px;padding:12px;border-radius:12px;background:#b2b4db0c;color:var(--muted);font-size:12px;line-height:1.5;transition:background .2s,color .2s;}
-.problem-chapters a>span {color:var(--lofi-lavender);font-size:11px;font-variant-numeric:tabular-nums;}
-.problem-chapters a:hover {background:#c5b0e51b;color:var(--ink);}
-.problem-chapters a[aria-current="page"] {background:#a5e4d51a;color:var(--lofi-mint);box-shadow:inset 0 -2px var(--lofi-mint);}
+.sidebar-chapters {margin:24px -9px 20px;flex-shrink:0;}
+.sidebar-chapters-label {padding:0 9px 8px;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);}
+.sidebar .chapter-options {margin:0;gap:3px;}
+.sidebar .chapter-options a {gap:10px;min-height:40px;padding:8px 9px;border-radius:10px;font-size:11px;line-height:1.5;}
+.chapter-number {color:var(--lofi-mint);font-size:10px;font-variant-numeric:tabular-nums;flex-shrink:0;}
+.chapter-name {min-width:0;}
+.sidebar .chapter-options a[aria-current="page"] {background:#a5e4d515;color:var(--lofi-mint);}
+.sidebar-folded .sidebar-chapters {margin:20px 0;}
+.sidebar-folded .sidebar-chapters-label,.sidebar-folded .chapter-name {display:none;}
+.sidebar-folded .sidebar .chapter-options {width:44px;margin:0;}
+.sidebar-folded .sidebar .chapter-options a {padding:8px 0;}
 .chapter-empty {padding:28px 10px;font-size:13px;line-height:1.8;}
 .chapter-three-diagram svg {display:block;width:100%;height:auto;overflow:visible;}
 .chapter-three-diagram svg text {font-size:16px;font-style:normal;}
-@media(max-width:1050px){.problem-chapters {grid-template-columns:repeat(2,minmax(0,1fr));}}
-@media(max-width:600px){.problem-chapters a {font-size:11px;padding:10px;}.reference-library .pending-problem {flex-wrap:wrap;}.pending-problem>.tiny {margin-left:36px;}.chapter-three-diagram {min-width:0;}}
+@media(max-width:600px){
+ .sidebar:has(.sidebar-chapters) {height:auto;min-height:65px;flex-wrap:wrap;row-gap:8px;padding-top:10px;padding-bottom:8px;}
+ .sidebar-chapters {width:100%;margin:0;}
+ .sidebar-chapters-label {display:none;}
+ .sidebar .chapter-options {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;width:100%;margin:0;}
+ .sidebar .chapter-options a {gap:6px;min-width:0;min-height:40px;height:auto;padding:6px 4px;font-size:10px;line-height:1.5;}
+ .sidebar .chapter-options .chapter-number {font-size:10px;}
+ .reference-library .pending-problem {flex-wrap:wrap;}.pending-problem>.tiny {margin-left:36px;}.chapter-three-diagram {min-width:0;}
+}
 .problem-reference h1 {font-size:32px;margin:12px 0 26px;}
 .reference-question {--ink:var(--surface-ink);--muted:var(--surface-muted);display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center;padding:28px;border-radius:22px;background:linear-gradient(120deg,#edf4ed,#e5e4f2);color:var(--ink);}
 .reference-question h2 {font-size:17px;margin-bottom:12px;}
@@ -636,6 +667,7 @@ footer{gap:16px;flex-wrap:wrap}
 .reference-notes ul {color:var(--muted);line-height:1.9;padding-left:20px;margin-top:12px;}
 @media(max-width:850px){.reference-question {grid-template-columns:1fr;gap:18px;}.reference-question .diagram {max-width:400px;justify-self:center;}}
 @media(max-width:600px){.reference-library h1,.problem-reference h1 {font-size:27px;}.reference-question {padding:20px;}.solution-slide {min-height:280px;padding-top:22px;}.solution-slide h3 {font-size:21px;}.solution-slide .equation.block {padding:12px 6px;font-size:12px;}}
+@media(max-width:600px){.problem-title {font-size:15px;}.problem-subtitle {font-size:11px;}.embedded-reference .reference-question {padding:20px;}.reference-meta {gap:8px;}.reference-permalink {font-size:10px;}}
 .reference-question .diagram text {fill:var(--surface-ink);}
 /* The classroom is a full-height conversation with a single quiet input bar. */
 .main-shell:has(.conversation-classroom)>main {display:flex;height:calc(100dvh - 65px);min-height:0;overflow:hidden;}

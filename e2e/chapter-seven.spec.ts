@@ -7,14 +7,17 @@ test('Chapter 7 lists thirteen exercises and keeps chapter context across refere
  const chapters=page.getByRole('navigation',{name:'Problem chapters'});
  await chapters.getByRole('link',{name:'07 Work & energy'}).click();
  await expect(page.getByRole('heading',{name:'Work and Energy',exact:true})).toBeVisible();
- await expect(page.locator('.problem-list a')).toHaveCount(13);
+ await expect(page.locator('.problem-toggle')).toHaveCount(13);
  await expect(page.locator('.pending-problem')).toHaveCount(0);
- await expect(page.locator('.problem-list a').filter({hasText:'Original practice'})).toHaveCount(2);
+ await expect(page.locator('.problem-toggle').filter({hasText:'Original practice'})).toHaveCount(2);
  await page.reload();await expect(chapters.getByRole('link',{name:'07 Work & energy'})).toHaveAttribute('aria-current','page');
  await page.getByRole('link',{name:'Professor Shalva’s problem-solving guide'}).click();
  await expect(page).toHaveURL(/\/library\/guide\?chapter=chapter-7&student=bart-v1$/);
  await page.getByRole('link',{name:'Problems',exact:true}).last().click();
- await page.getByRole('link',{name:/Stretching a spring a little farther/}).click();
+ await page.getByRole('button',{name:/Stretching a spring a little farther/}).click();
+ await expect(page).toHaveURL(/\/library\?chapter=chapter-7&student=bart-v1#problem-ch7-spring-work$/);
+ await page.getByRole('link',{name:'Open full page',exact:true}).click();
+ await expect(chapters.getByRole('link',{name:'07 Work & energy'})).toHaveAttribute('aria-current','page');
  await expect(page.locator('.eyebrow')).toContainText('CHAPTER 7 · PROBLEM 37');
  await expect(page.locator('[data-work-area="trapezoid"]')).toBeVisible();
  for(let i=0;i<7;i++)await page.getByRole('button',{name:'Next',exact:true}).click();
@@ -29,8 +32,8 @@ test('all Chapter 7 diagrams and every solution step stay readable on a phone',a
  test.setTimeout(120000);
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto('/library?chapter=chapter-7');
- await expect(page.locator('.problem-list a')).toHaveCount(13);
- const links=await page.locator('.problem-list a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')!));
+ await expect(page.locator('.problem-toggle')).toHaveCount(13);
+ const links=await page.locator('.problem-toggle').evaluateAll(nodes=>nodes.map(n=>'/problems/'+n.id.replace(/^toggle-/,'')));
  expect(links).toHaveLength(13);
  for(const href of links){
   await page.goto(href);const svg=page.locator('.energy-diagram svg');await expect(svg).toBeVisible();

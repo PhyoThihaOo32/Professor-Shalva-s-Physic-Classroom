@@ -1,0 +1,61 @@
+import {expect} from '@playwright/test';
+import {test} from './fixtures';
+
+test('problems expand in place with keyboard controls, retry, refresh, and one open walkthrough',async({page})=>{
+ const mutations:string[]=[],references:string[]=[];
+ page.on('request',r=>{if(r.method()==='POST')mutations.push(r.url());if(r.url().includes('/reference'))references.push(r.url());});
+ await page.goto('/library?chapter=chapter-7&student=stewie-v1');
+ const spring=page.getByRole('button',{name:'Problem 37: Stretching a spring a little farther',exact:true});
+ await expect(spring).toBeVisible();expect(references).toEqual([]);
+ await expect(page.locator('.embedded-reference')).toHaveCount(0);
+ const chapters=page.locator('.sidebar').getByRole('navigation',{name:'Problem chapters'});
+ await expect(chapters.getByRole('link')).toHaveCount(3);
+ let fail=true;
+ await page.route('**/api/problems/ch7-spring-work/reference',async route=>{
+  if(fail){fail=false;await route.fulfill({status:502,contentType:'text/html',body:'<html>Unavailable</html>'});}else await route.continue();
+ });
+ await spring.focus();await spring.press('Enter');
+ await expect(spring).toHaveAttribute('aria-expanded','true');
+ await expect(page).toHaveURL(/\/library\?chapter=chapter-7&student=stewie-v1#problem-ch7-spring-work$/);
+ await expect(page.locator('.embedded-reference').getByRole('alert')).toHaveText('The server is unavailable right now. Please try again.');
+ await page.getByRole('button',{name:'Try again',exact:true}).click();
+ await expect(page.locator('.embedded-reference [data-work-area="trapezoid"]')).toBeVisible();
+ await expect(page.getByRole('link',{name:'Open full page',exact:true})).toHaveAttribute('href','/problems/ch7-spring-work?student=stewie-v1');
+ await page.getByRole('button',{name:'Next',exact:true}).click();await expect(page.locator('.solution-position')).toHaveText('Step 2 of 8');
+ await page.reload();await expect(spring).toHaveAttribute('aria-expanded','true');await expect(page.locator('.solution-position')).toHaveText('Step 1 of 8');
+ const pile=page.getByRole('button',{name:'Problem 1: A falling pile driver',exact:true});
+ await pile.click();await expect(pile).toHaveAttribute('aria-expanded','true');await expect(spring).toHaveAttribute('aria-expanded','false');
+ await expect(page.locator('.embedded-reference')).toHaveCount(1);
+ await expect(page.locator('.embedded-reference .eyebrow')).toContainText('CHAPTER 7 · PROBLEM 1');
+ await pile.focus();await pile.press('Space');await expect(pile).toHaveAttribute('aria-expanded','false');
+ await expect(page.locator('.embedded-reference')).toHaveCount(0);await expect(pile).toBeFocused();
+ await chapters.getByRole('link',{name:'03 Vectors & projectiles',exact:true}).click();
+ await expect(page.locator('.problem-toggle')).toHaveCount(12);await expect(page.locator('.embedded-reference')).toHaveCount(0);
+ expect(mutations).toEqual([]);
+});
+
+test('sidebar chapters and expanded diagrams stay usable on a phone and when folded',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/library?chapter=chapter-7');
+ const chapters=page.locator('.sidebar').getByRole('navigation',{name:'Problem chapters'});
+ await page.getByRole('button',{name:'Fold sidebar',exact:true}).click();
+ await expect(chapters.getByRole('link',{name:'07 Work & energy',exact:true})).toBeVisible();
+ await chapters.getByRole('link',{name:'03 Vectors & projectiles',exact:true}).click();
+ await expect(page.locator('.problem-toggle')).toHaveCount(12);
+ await expect(chapters.getByRole('link',{name:'03 Vectors & projectiles',exact:true})).toHaveAttribute('aria-current','page');
+ await page.setViewportSize({width:390,height:844});await expect(page.locator('.sidebar')).not.toBeVisible();
+ await page.getByRole('button',{name:'Expand sidebar',exact:true}).click();
+ await expect(chapters).toBeVisible();await chapters.getByRole('link',{name:'07 Work & energy',exact:true}).click();
+ await page.getByRole('button',{name:/Problem 17: Pushing a cart/}).click();
+ await expect(page.locator('.embedded-reference .energy-diagram svg')).toBeVisible();
+ await expect(page.locator('.embedded-reference .reference-question')).toContainText('17° below horizontal');
+ for(let i=0;i<7;i++)await page.getByRole('button',{name:'Next',exact:true}).click();
+ await expect(page.locator('.solution-slide')).toContainText('Normal: 0 J');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.evaluate(()=>{(document.activeElement as HTMLElement)?.blur();window.scrollTo({top:0,behavior:'instant'});});
+ await page.waitForFunction(()=>window.scrollY===0);
+ await page.screenshot({path:'docs/screenshots/expandable-problems-phone.png',fullPage:true,animations:'disabled'});
+ await page.setViewportSize({width:1360,height:1000});
+ await page.screenshot({path:'docs/screenshots/expandable-problems-desktop.png',fullPage:true,animations:'disabled'});
+ expect(errors).toEqual([]);
+});

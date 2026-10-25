@@ -4,7 +4,7 @@ import {test} from './fixtures';
 test('original practice replaces missing questions and labels every authored figure and value set',async({page})=>{
  const requests:string[]=[];page.on('request',r=>{if(r.method()==='POST')requests.push(r.url());});
  await page.goto('/library?chapter=chapter-3&student=bart-v1');
- await expect(page.locator('.problem-list a')).toHaveCount(12);await expect(page.locator('.pending-problem')).toHaveCount(0);
+ await expect(page.locator('.problem-toggle')).toHaveCount(12);await expect(page.locator('.pending-problem')).toHaveCount(0);
  for(const [slug,title] of [['vector-differences','Subtracting two vectors'],['vector-combinations','Combining three vectors'],['drone-route','A drone changes course'],['projectile','Launch, rise, and land'],['river-crossing','Across a moving river']]){
   await page.goto(`/problems/ch3-original-${slug}?student=bart-v1`);
   await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
@@ -15,8 +15,8 @@ test('original practice replaces missing questions and labels every authored fig
   await expect(page.locator('.solution-slide .katex').first()).toBeVisible();
   await expect(page.locator('.solution-slide .equation-prose')).toHaveCount(0);
  }
- await page.goto('/library?student=bart-v1');await expect(page.locator('.problem-list a')).toHaveCount(10);
- await page.getByRole('link',{name:/Reading a position–time graph/}).click();
+ await page.goto('/library?student=bart-v1');await expect(page.locator('.problem-toggle')).toHaveCount(10);
+ await page.getByRole('button',{name:/Reading a position–time graph/}).click();
  await expect(page.locator('.reference-edition')).toContainText('Original practice');
  await expect(page.locator('.original-practice-diagram svg polyline')).toBeVisible();
  expect(requests).toEqual([]);

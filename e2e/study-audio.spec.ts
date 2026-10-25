@@ -211,7 +211,10 @@ test('audio-only radio decodes music, shares volume, survives navigation and fol
   await expect(topbar.getByRole('button', {name: 'Pause radio', exact: true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', {name: 'Expand sidebar', exact: true}).click();
-  expect((await page.locator('.sidebar').boundingBox())!.height).toBeLessThanOrEqual(70);
+  const chapterHeight = (await page.locator('.sidebar-chapters').boundingBox())!.height;
+  expect(chapterHeight).toBeLessThanOrEqual(48);
+  // Keep the header compact while allowing the new chapter row, gap, and border.
+  expect((await page.locator('.sidebar').boundingBox())!.height - chapterHeight).toBeLessThanOrEqual(72);
   await topbar.getByRole('button', {name: 'Offline', exact: true}).click();
   await expect(audio).not.toHaveAttribute('src');
   await topbar.getByRole('button', {name: 'Play audio', exact: true}).click();

@@ -1,14 +1,16 @@
 # Problem chapters
 
-The Problems page offers five chapter links in the existing lo-fi theme. The selected chapter lives in the URL, survives refresh and sign-in, and is retained when returning from a reference or Professor Shalva’s guide. References remain separate from live conversations.
+The Problems sidebar offers Chapters 2, 3, and 7 in the existing lo-fi theme. The selected chapter lives in the URL, survives refresh and sign-in, and is retained when returning from a reference or Professor Shalva’s guide. On phones, the same sidebar presents a compact row of chapter choices. Folded desktop navigation retains the chapter numbers and accessible names.
+
+Click a problem to expand its question, givens, diagram, and eight-step walkthrough directly in the list. One walkthrough opens at a time, and its reference is fetched only when requested. A URL fragment preserves which problem is open after refresh; the walkthrough restarts at step one. The “Open full page” link retains standalone references for sharing and focused reading. References remain separate from live conversations.
 
 | Chapter | Content |
 | --- | --- |
 | 2 · Describing Motion: Kinematics in One Dimension | Nine supplied references plus an original position–time graph exercise in slot 17 |
 | 3 · Kinematics in Two or Three Dimensions; Vectors | Seven supplied problems plus five original practice versions, all with diagrams and eight-step solutions |
-| 4 · Dynamics: Newton’s Laws of Motion | Chapter section ready for question text |
-| 5 · Using Newton’s Laws: Friction, Circular Motion | Chapter section ready for question text |
 | 7 · Work and Energy | Thirteen exercises, each with an original descriptive figure and eight-step worked solution |
+
+Chapters 4 and 5 are hidden for now. Stored chapter records and conversation history are preserved; old library links to these chapters return to Chapter 2.
 
 ## Chapter 7
 
@@ -52,4 +54,4 @@ The supplied questions are normalized for notation. Original practice versions s
 
 `npm run db:seed` adds chapters and immutable problem versions idempotently. It preserves existing published versions and conversations; no schema migration or history reset is needed. Teacher and professor conversation behavior is unchanged.
 
-Checks cover independent numeric calculations, vector signs and quadrants, both projectile angles, renderable mathematics, safe public DTOs, missing-content handling, chapter navigation, sign-in return destinations, and diagram label bounds/overlap on a phone. AI transport remains stubbed in automated checks.
+Checks cover independent numeric calculations, vector signs and quadrants, both projectile angles, renderable mathematics, safe public DTOs, missing-content handling, sidebar chapter navigation, sign-in return destinations, and diagram label bounds/overlap on a phone. Expansion checks cover keyboard operation, lazy loading, failed-load retry, refresh, full-page links, one open walkthrough, and folded/mobile chapter selection. AI transport remains stubbed in automated checks.

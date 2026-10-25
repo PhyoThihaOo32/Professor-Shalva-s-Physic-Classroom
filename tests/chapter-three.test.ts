@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import katex from 'katex';
 import {chapterThreeProblems} from '../lib/chapter-three';
-import {courseChapter,courseChapters,problemLibraryHref} from '../lib/course';
+import {courseChapter,courseChapters,problemLibraryHref,problemPageChapter} from '../lib/course';
 import {publicProblem,personas} from '../lib/domain';
 import {approvedAttempt,planErrors,validateAttempt} from '../lib/planner';
 import {equationLines,equationFragments,isProseMath} from '../lib/math-text';
@@ -64,14 +64,23 @@ describe('Chapter 3 reference physics',()=>{
 });
 describe('chapter navigation and incomplete content',()=>{
  it('has no unresolved missing-data rows after original replacements',()=>{
-  expect(courseChapters.map(c=>c.number)).toEqual([2,3,4,5,7]);
+  expect(courseChapters.map(c=>c.number)).toEqual([2,3,7]);
   const pending=courseChapter('chapter-3').pending;
   expect(pending).toEqual([]);
+  expect(courseChapter('chapter-4').id).toBe('chapter-2');
+  expect(courseChapter('chapter-5').id).toBe('chapter-2');
  });
  it('retains chapter and student context in refreshable local URLs',()=>{
   expect(problemLibraryHref('chapter-3','bart-v1')).toBe('/library?chapter=chapter-3&student=bart-v1');
   expect(problemLibraryHref('chapter-2','stewie-v1')).toBe('/library?student=stewie-v1');
   expect(courseChapter('demo').id).toBe('chapter-2');
   expect(problemLibraryHref('chapter-3','x&chapter=chapter-5')).toBe('/library?chapter=chapter-3&student=x%26chapter%3Dchapter-5');
+ });
+ it('keeps the correct sidebar chapter on references and guide pages',()=>{
+  expect(problemPageChapter('/problems/ch7-spring-work','chapter-3').id).toBe('chapter-7');
+  expect(problemPageChapter('/problems/ch3-original-projectile').id).toBe('chapter-3');
+  expect(problemPageChapter('/problems/ch2-driving-home').id).toBe('chapter-2');
+  expect(problemPageChapter('/library/guide','chapter-7').id).toBe('chapter-7');
+  expect(problemPageChapter('/library','chapter-5').id).toBe('chapter-2');
  });
 });

@@ -5,18 +5,21 @@ test('chapter selection, worked references, and original practice survive naviga
  const mutations:string[]=[];page.on('request',request=>{if(request.method()==='POST')mutations.push(request.url());});
  await page.goto('/library?student=bart-v1');
  const chapters=page.getByRole('navigation',{name:'Problem chapters'});
- await expect(chapters.getByRole('link')).toHaveCount(5);
+ await expect(chapters.getByRole('link')).toHaveCount(3);
+ await expect(page.locator('.sidebar').getByRole('navigation',{name:'Problem chapters'})).toBeVisible();
+ await expect(page.getByRole('main').getByRole('navigation',{name:'Problem chapters'})).toHaveCount(0);
  await chapters.getByRole('link',{name:'03 Vectors & projectiles'}).click();
  await expect(page.getByRole('heading',{name:'Kinematics in Two or Three Dimensions; Vectors'})).toBeVisible();
- await expect(page.locator('.problem-list a')).toHaveCount(12);
+ await expect(page.locator('.problem-toggle')).toHaveCount(12);
  await expect(page.locator('.pending-problem')).toHaveCount(0);
- await expect(page.locator('.problem-list a').filter({hasText:'Original practice'})).toHaveCount(5);
+ await expect(page.locator('.problem-toggle').filter({hasText:'Original practice'})).toHaveCount(5);
  await page.reload();await expect(chapters.getByRole('link',{name:'03 Vectors & projectiles'})).toHaveAttribute('aria-current','page');
  await page.getByRole('link',{name:'Professor Shalva’s problem-solving guide'}).click();
  await expect(page).toHaveURL(/\/library\/guide\?chapter=chapter-3&student=bart-v1$/);
  await page.getByRole('link',{name:'Problems',exact:true}).last().click();
  await expect(chapters.getByRole('link',{name:'03 Vectors & projectiles'})).toHaveAttribute('aria-current','page');
- await page.getByRole('link',{name:/West, then southwest/}).click();
+ await page.getByRole('button',{name:/West, then southwest/}).click();
+ await page.getByRole('link',{name:'Open full page',exact:true}).click();
  await expect(page.locator('.eyebrow')).toContainText('CHAPTER 3 · PROBLEM 1');
  await expect(page.locator('.chapter-three-diagram svg')).toBeVisible();
  const next=page.getByRole('button',{name:'Next',exact:true});
@@ -25,14 +28,16 @@ test('chapter selection, worked references, and original practice survive naviga
  await expect(page.locator('.solution-slide .katex').first()).toBeVisible();
  await page.getByRole('link',{name:'Problems',exact:true}).last().click();
  await expect(page).toHaveURL(/\/library\?chapter=chapter-3&student=bart-v1$/);
- await page.getByRole('link',{name:/Two angles, one range/}).click();
+ await page.getByRole('button',{name:/Two angles, one range/}).click();
+ await page.getByRole('link',{name:'Open full page',exact:true}).click();
  for(let i=0;i<7;i++)await next.click();
  await expect(page.locator('.solution-slide')).toContainText('23° or 67°');
  await page.getByRole('link',{name:'Problems',exact:true}).last().click();
- for(const name of ['04 Newton’s laws','05 Friction & circular motion']){
-  await chapters.getByRole('link',{name}).click();
-  await expect(page.getByText('This chapter is ready for its first problems.')).toBeVisible();
-  await expect(page.locator('.problem-list a')).toHaveCount(0);
+ for(const number of [4,5]){
+  await expect(chapters.getByRole('link',{name:new RegExp('0'+number)})).toHaveCount(0);
+  await page.goto('/library?chapter=chapter-'+number+'&student=bart-v1');
+  await expect(page).toHaveURL(/\/library\?student=bart-v1$/);
+  await expect(page.locator('.problem-toggle')).toHaveCount(10);
  }
  expect(mutations).toEqual([]);
 });
@@ -40,7 +45,7 @@ test('chapter selection, worked references, and original practice survive naviga
 test('chapter diagrams and equations stay readable on a phone',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto('/library?chapter=chapter-3');
- await expect(page.locator('.problem-list a')).toHaveCount(12);
+ await expect(page.locator('.problem-toggle')).toHaveCount(12);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'docs/screenshots/chapter-three-library-mobile.png',fullPage:true});
  const ids=['car-displacement','vector-components','opposite-vectors','particle-derivatives','displacement-at-five','horizontal-launch','projectile-range'];

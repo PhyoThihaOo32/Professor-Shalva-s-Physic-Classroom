@@ -8,11 +8,13 @@ export type CourseChapter={id:string;number:number;title:string;shortTitle:strin
 export const courseChapters:CourseChapter[]=[
  {id:chapterTwoId,number:2,title:chapterTwoTitle,shortTitle:'Motion in 1D',pending:[]},
  {id:'chapter-3',number:3,title:'Kinematics in Two or Three Dimensions; Vectors',shortTitle:'Vectors & projectiles',pending:[]},
- {id:'chapter-4',number:4,title:'Dynamics: Newton’s Laws of Motion',shortTitle:'Newton’s laws',pending:[]},
- {id:'chapter-5',number:5,title:'Using Newton’s Laws: Friction, Circular Motion',shortTitle:'Friction & circular motion',pending:[]},
  {id:'chapter-7',number:7,title:'Work and Energy',shortTitle:'Work & energy',pending:[]}
 ];
 export function courseChapter(id:string|undefined){return courseChapters.find(chapter=>chapter.id===id)??courseChapters[0];}
+export function problemPageChapter(path:string,requested?:string){
+ const number=/^\/problems\/ch(\d+)-/.exec(path)?.[1];
+ return courseChapter(number?'chapter-'+number:requested);
+}
 export function problemLibraryHref(chapterId?:string,studentId?:string){
  const params=new URLSearchParams();
  if(chapterId&&chapterId!==chapterTwoId)params.set('chapter',courseChapter(chapterId).id);
