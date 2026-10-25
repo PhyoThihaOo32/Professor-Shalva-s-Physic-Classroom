@@ -5,20 +5,21 @@ import {ArrowLeft,ArrowRight,RotateCcw} from 'lucide-react';
 import {api} from '@/lib/client';
 import {referenceExplanation} from '@/lib/reference-explanations';
 import type {PublicReference} from '@/lib/domain';
+import {courseChapter,problemLibraryHref} from '@/lib/course';
 import {Diagram,Equation,MathText} from './visuals';
 export function ProblemReference({id,studentId}:{id:string;studentId?:string}){
  const heading=useRef<HTMLHeadingElement>(null);
  const [selected,setSelected]=useState(0);
  const [reference,setReference]=useState<PublicReference|null>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
  useEffect(()=>{let active=true;api<PublicReference>(`problems/${id}/reference`).then(r=>{if(active)setReference(r);}).catch(e=>{if(active)setError(e.message);});return ()=>{active=false;};},[id,retry]);
- const back=<Link className="breadcrumb" href={`/library${studentId?`?student=${studentId}`:''}`}><ArrowLeft size={14}/>Problems</Link>;
+ const back=<Link className="breadcrumb" href={problemLibraryHref(reference?.problem.chapterId,studentId)}><ArrowLeft size={14}/>Problems</Link>;
  if(!reference)return <div className="page problem-reference">{back}<p role={error?'alert':'status'}>{error||'Loading the reference…'}</p>{error&&<button className="text-button" onClick={()=>{setError('');setRetry(n=>n+1);}}>Try again</button>}</div>;
  const {problem,steps}=reference;
  const step=steps[selected],explanation=referenceExplanation(problem.id,selected);
  function moveTo(index:number){setSelected(Math.max(0,Math.min(steps.length-1,index)));heading.current?.focus({preventScroll:true});heading.current?.scrollIntoView({block:'nearest'});}
 
  return <div className="page problem-reference">{back}
-  <div className="eyebrow">{problem.chapterId==='chapter-2'?'CHAPTER 2':'REFERENCE'}{problem.problemNumber?` · PROBLEM ${problem.problemNumber}`:''}</div>
+  <div className="eyebrow">{problem.chapterId?.startsWith('chapter-')?`CHAPTER ${courseChapter(problem.chapterId).number}`:'REFERENCE'}{problem.problemNumber?` · PROBLEM ${problem.problemNumber}`:''}</div>
   <h1>{problem.title}</h1>
   <section className="reference-question" aria-labelledby="reference-question-title"><div><h2 id="reference-question-title">The question</h2><p className="statement"><MathText text={problem.statement}/></p>{problem.givens.length>0&&<dl className="reference-givens">{problem.givens.map(g=><div key={g.symbol}><dt>{g.symbol}</dt><dd>{g.value} {g.unit}</dd></div>)}</dl>}</div><Diagram kind={problem.diagram} caption={problem.diagramCaption} large/></section>
   <section className="reference-solution" aria-labelledby="reference-solution-title">

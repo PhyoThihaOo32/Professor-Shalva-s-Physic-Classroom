@@ -597,6 +597,16 @@ footer{gap:16px;flex-wrap:wrap}
 .reference-library .problem-row {min-height:86px;}
 .reference-library .problem-row h3 {font-size:16px;}
 .reference-library .pending-problem {align-items:center;}
+.problem-chapters {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 24px;}
+.problem-chapters a {display:flex;align-items:center;gap:10px;min-height:52px;padding:12px;border-radius:12px;background:#b2b4db0c;color:var(--muted);font-size:12px;line-height:1.5;transition:background .2s,color .2s;}
+.problem-chapters a>span {color:var(--lofi-lavender);font-size:11px;font-variant-numeric:tabular-nums;}
+.problem-chapters a:hover {background:#c5b0e51b;color:var(--ink);}
+.problem-chapters a[aria-current="page"] {background:#a5e4d51a;color:var(--lofi-mint);box-shadow:inset 0 -2px var(--lofi-mint);}
+.chapter-empty {padding:28px 10px;font-size:13px;line-height:1.8;}
+.chapter-three-diagram svg {display:block;width:100%;height:auto;overflow:visible;}
+.chapter-three-diagram svg text {font-size:16px;font-style:normal;}
+@media(max-width:1050px){.problem-chapters {grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:600px){.problem-chapters a {font-size:11px;padding:10px;}.reference-library .pending-problem {flex-wrap:wrap;}.pending-problem>.tiny {margin-left:36px;}.chapter-three-diagram {min-width:0;}}
 .problem-reference h1 {font-size:32px;margin:12px 0 26px;}
 .reference-question {--ink:var(--surface-ink);--muted:var(--surface-muted);display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center;padding:28px;border-radius:22px;background:linear-gradient(120deg,#edf4ed,#e5e4f2);color:var(--ink);}
 .reference-question h2 {font-size:17px;margin-bottom:12px;}

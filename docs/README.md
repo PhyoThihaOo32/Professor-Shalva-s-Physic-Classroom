@@ -19,7 +19,8 @@ Start with the [project overview](../README.md) or [local setup](development.md)
 | [Student mode](student-mode.md) | Professor classrooms and learning controls |
 | [Professor personalities](professor-personalities.md) | Teaching voices and research sources |
 | [Content authoring](content-authoring.md) | Owner access and reviewed problem publishing |
-| [Chapter 2](chapter-two.md) | Exercise sources and physics assumptions |
+| [Problem chapters](chapters.md) | Current chapter navigation, supplied exercises, and missing content |
+| [Chapter 2 notes](chapter-two.md) | Original exercise sources and earlier classroom behavior |
 | [Course resources](course-resources.md) | Supplied material and authoring scope |
 | [Physics reference](physics-reference.md) | Reviewed original demo solutions |
 

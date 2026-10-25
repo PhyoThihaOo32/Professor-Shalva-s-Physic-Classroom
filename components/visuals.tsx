@@ -2,6 +2,7 @@
 import katex from 'katex';
 import {mathParts,plainMath,explanationLines,equationLines,equationFragments,isProseMath} from '@/lib/math-text';
 import Image from 'next/image';
+import {ChapterThreeDiagram,isChapterThreeDiagram} from './chapter-three-diagrams';
 import type {CSSProperties} from 'react';
 import {findPersona} from '@/lib/domain';
 import {ProfessorPortrait} from './professor-portrait';
@@ -41,6 +42,7 @@ export function Avatar({id,size=64}:{id:string;size?:number}){
  </svg>;
 }
 export function Diagram({kind,caption,large=false}:{kind:ProblemData['diagram'];caption:string;large?:boolean}){
+ if(isChapterThreeDiagram(kind))return <ChapterThreeDiagram kind={kind} caption={caption} large={large}/>;
  if(['motion','position','vertical','trains','cliff'].includes(kind))return <MotionDiagram kind={kind} caption={caption} large={large}/>;
  const top=kind==='top',bottom=kind==='bottom',pendulum=kind==='pendulum';
  return <figure className={`diagram ${large?'large':''}`}><svg viewBox="0 0 360 230" role="img" aria-label={caption}><defs><marker id={`arrow-${kind}`} markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7" fill="#548b85"/></marker><marker id={`amber-${kind}`} markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7" fill="#b38153"/></marker></defs>
