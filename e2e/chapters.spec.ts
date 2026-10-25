@@ -1,16 +1,16 @@
 import {expect} from '@playwright/test';
 import {test,anonymousTest} from './fixtures';
 
-test('chapter selection, worked references, and missing-content states survive navigation',async({page})=>{
+test('chapter selection, worked references, and original practice survive navigation',async({page})=>{
  const mutations:string[]=[];page.on('request',request=>{if(request.method()==='POST')mutations.push(request.url());});
  await page.goto('/library?student=bart-v1');
  const chapters=page.getByRole('navigation',{name:'Problem chapters'});
  await expect(chapters.getByRole('link')).toHaveCount(4);
  await chapters.getByRole('link',{name:'03 Vectors & projectiles'}).click();
  await expect(page.getByRole('heading',{name:'Kinematics in Two or Three Dimensions; Vectors'})).toBeVisible();
- await expect(page.locator('.problem-list a')).toHaveCount(7);
- await expect(page.locator('.pending-problem')).toHaveCount(5);
- await expect(page.locator('.pending-problem').filter({hasText:'Combining three vectors'})).toContainText('Fig. 3–41');
+ await expect(page.locator('.problem-list a')).toHaveCount(12);
+ await expect(page.locator('.pending-problem')).toHaveCount(0);
+ await expect(page.locator('.problem-list a').filter({hasText:'Original practice'})).toHaveCount(5);
  await page.reload();await expect(chapters.getByRole('link',{name:'03 Vectors & projectiles'})).toHaveAttribute('aria-current','page');
  await page.getByRole('link',{name:'Professor Shalva’s problem-solving guide'}).click();
  await expect(page).toHaveURL(/\/library\/guide\?chapter=chapter-3&student=bart-v1$/);
@@ -40,7 +40,7 @@ test('chapter selection, worked references, and missing-content states survive n
 test('chapter diagrams and equations stay readable on a phone',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto('/library?chapter=chapter-3');
- await expect(page.locator('.problem-list a')).toHaveCount(7);
+ await expect(page.locator('.problem-list a')).toHaveCount(12);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'docs/screenshots/chapter-three-library-mobile.png',fullPage:true});
  const ids=['car-displacement','vector-components','opposite-vectors','particle-derivatives','displacement-at-five','horizontal-launch','projectile-range'];

@@ -3,6 +3,8 @@ import katex from 'katex';
 import {mathParts,plainMath,explanationLines,equationLines,equationFragments,isProseMath} from '@/lib/math-text';
 import Image from 'next/image';
 import {ChapterThreeDiagram,isChapterThreeDiagram} from './chapter-three-diagrams';
+import {PracticeDiagram} from './practice-diagrams';
+import {originalPracticeFigure} from '@/lib/practice-data';
 import type {CSSProperties} from 'react';
 import {findPersona} from '@/lib/domain';
 import {ProfessorPortrait} from './professor-portrait';
@@ -41,7 +43,9 @@ export function Avatar({id,size=64}:{id:string;size?:number}){
  <path d="M24 48l8 6 8-6" fill="none" stroke="#fff5e8" strokeWidth="2" strokeLinecap="round"/>
  </svg>;
 }
-export function Diagram({kind,caption,large=false}:{kind:ProblemData['diagram'];caption:string;large?:boolean}){
+export function Diagram({kind,caption,large=false,problemId}:{kind:ProblemData['diagram'];caption:string;large?:boolean;problemId?:string}){
+ const practice=originalPracticeFigure(problemId);
+ if(practice)return <PracticeDiagram kind={practice} caption={caption} large={large}/>;
  if(isChapterThreeDiagram(kind))return <ChapterThreeDiagram kind={kind} caption={caption} large={large}/>;
  if(['motion','position','vertical','trains','cliff'].includes(kind))return <MotionDiagram kind={kind} caption={caption} large={large}/>;
  const top=kind==='top',bottom=kind==='bottom',pendulum=kind==='pendulum';

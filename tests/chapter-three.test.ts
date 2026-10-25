@@ -63,12 +63,10 @@ describe('Chapter 3 reference physics',()=>{
  });
 });
 describe('chapter navigation and incomplete content',()=>{
- it('keeps missing figures and missing question text out of published references',()=>{
+ it('has no unresolved missing-data rows after original replacements',()=>{
   expect(courseChapters.map(c=>c.number)).toEqual([2,3,4,5]);
   const pending=courseChapter('chapter-3').pending;
-  expect(pending.filter(p=>p.status==='Needs figure').map(p=>p.number)).toEqual([11,13]);
-  expect(pending.filter(p=>p.status==='Needs question').map(p=>p.number)).toEqual([15,45,55]);
-  for(const p of pending)expect(chapterThreeProblems.some(problem=>problem.data.problemNumber===p.number)).toBe(false);
+  expect(pending).toEqual([]);
  });
  it('retains chapter and student context in refreshable local URLs',()=>{
   expect(problemLibraryHref('chapter-3','bart-v1')).toBe('/library?chapter=chapter-3&student=bart-v1');

@@ -896,3 +896,5 @@ footer{gap:16px;flex-wrap:wrap}
 @keyframes music-wave-pulse{0%{transform:scaleY(.3)}38%{transform:scaleY(.85)}70%{transform:scaleY(.5)}100%{transform:scaleY(1)}}
 @keyframes music-wave-echo{from{transform:translateX(-1px) scaleY(.6)}to{transform:translateX(1px) scaleY(1)}}
 @media(prefers-reduced-motion:reduce){.music-wave-playing .music-wave-trace,.music-wave-playing .music-wave-echo{animation:none;transform:none}}
+
+.reference-edition {font-size:11px;color:var(--lofi-mint);margin:12px 0 -4px;line-height:1.7;}

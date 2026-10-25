@@ -7,3 +7,9 @@
 5. Publishing creates an immutable version. Each edit saves a new version. Existing sessions retain the version they started with. The current content studio adds problems to the initial circular-motion chapter; adding another chapter requires extending its chapter selector and chapter creation API.
 
 Reference/template/schema files: `lib/content.ts`, `lib/schemas.ts`, `lib/domain.ts`; SQL migration: `prisma/migrations/20261006000000_initial/migration.sql`; seed: `prisma/seed.ts`. Seed runs are idempotent and do not overwrite published versions. Changing demo source does not change already-seeded versions: create/publish a new version. Add independent regression cases for new problems.
+
+## Missing data and figures
+
+The user authorizes original educational practice whenever a requested exercise lacks values, a diagram, or question text. Choose sensible, self-contained givens appropriate to the chapter. Label the entry **Original practice**, state assumptions, draw a readable figure, and independently verify every requested result. Retain supplied question wording when its setup is available. Use `kind: original` and describe the replacement source honestly. Existing textbook references and published versions stay intact.
+
+Built-in replacements use `lib/practice-data.ts`, `lib/original-practice.ts`, and `components/practice-diagrams.tsx`. Keep data and figures consistent. Create a new stable exercise ID if you change published givens or geometry. This workflow is the default for future incomplete educational requests.

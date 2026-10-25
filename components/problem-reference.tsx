@@ -20,8 +20,9 @@ export function ProblemReference({id,studentId}:{id:string;studentId?:string}){
 
  return <div className="page problem-reference">{back}
   <div className="eyebrow">{problem.chapterId?.startsWith('chapter-')?`CHAPTER ${courseChapter(problem.chapterId).number}`:'REFERENCE'}{problem.problemNumber?` · PROBLEM ${problem.problemNumber}`:''}</div>
+  {problem.kind==='original'&&<p className="reference-edition">Original practice · custom values and figure</p>}
   <h1>{problem.title}</h1>
-  <section className="reference-question" aria-labelledby="reference-question-title"><div><h2 id="reference-question-title">The question</h2><p className="statement"><MathText text={problem.statement}/></p>{problem.givens.length>0&&<dl className="reference-givens">{problem.givens.map(g=><div key={g.symbol}><dt>{g.symbol}</dt><dd>{g.value} {g.unit}</dd></div>)}</dl>}</div><Diagram kind={problem.diagram} caption={problem.diagramCaption} large/></section>
+  <section className="reference-question" aria-labelledby="reference-question-title"><div><h2 id="reference-question-title">The question</h2><p className="statement"><MathText text={problem.statement}/></p>{problem.givens.length>0&&<dl className="reference-givens">{problem.givens.map(g=><div key={g.symbol}><dt>{g.symbol}</dt><dd>{g.value} {g.unit}</dd></div>)}</dl>}</div><Diagram kind={problem.diagram} caption={problem.diagramCaption} problemId={problem.id} large/></section>
   <section className="reference-solution" aria-labelledby="reference-solution-title">
    <div className="solution-heading"><h2 id="reference-solution-title">Worked solution</h2><span className="solution-position" role="status">Step {selected+1} of {steps.length}</span></div>
    <div className="solution-progress" aria-hidden="true"><span style={{width:`${(selected+1)/steps.length*100}%`}}/></div>

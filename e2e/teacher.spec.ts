@@ -10,7 +10,7 @@ test('Problems combines references without creating or replacing classroom sessi
  const mutations:string[]=[];page.on('request',request=>{if(request.method()==='POST')mutations.push(request.url());});
  const nav=page.getByRole('navigation',{name:'Main navigation'});await nav.getByRole('link',{name:'Problems',exact:true}).click();
  await expect(nav.getByRole('link')).toHaveCount(4);await expect(nav.getByRole('link',{name:'Your progress'})).toHaveCount(0);await expect(nav.getByRole('link',{name:'Course notes'})).toHaveCount(0);
- await expect(page.getByRole('heading',{name:'Problems',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Demos'})).toHaveCount(0);await expect(page.getByRole('navigation',{name:'Library sections'})).toHaveCount(0);await expect(page.locator('.problem-list a')).toHaveCount(9);
+ await expect(page.getByRole('heading',{name:'Problems',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Demos'})).toHaveCount(0);await expect(page.getByRole('navigation',{name:'Library sections'})).toHaveCount(0);await expect(page.locator('.problem-list a')).toHaveCount(10);
  await page.getByRole('link',{name:/The drive home/}).click();await expect(page.getByRole('heading',{name:'The question'})).toBeVisible();await expect(page.getByRole('heading',{name:'Worked solution'})).toBeVisible();await expect(page.getByRole('heading',{name:'Read the journey'})).toBeVisible();await expect(page.locator('.solution-slide')).toHaveCount(1);await expect(page.locator('.reference-question .diagram')).toBeVisible();
  await expect(page.getByRole('button',{name:'Open classroom board'})).toHaveCount(0);await expect(page.getByLabel('Message your student')).toHaveCount(0);await page.reload();await expect(page.locator('.solution-slide')).toHaveCount(1);
  await page.goto('/library/manual/ch2-driving-home?student=bart-v1',{waitUntil:'load'});await expect(page).toHaveURL(/\/problems\/ch2-driving-home\?student=bart-v1$/);await expect(page.getByRole('heading',{name:'Worked solution'})).toBeVisible();
@@ -23,7 +23,7 @@ test('Problems retries failed loads with readable errors and keeps exercise numb
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  let failList=true;await page.route('**/api/problems',async route=>{if(failList){failList=false;await route.abort('failed');}else await route.continue();});
  await page.goto('/library');await expect(page.getByRole('main').getByRole('alert')).toContainText('Check your connection and try again.');
- await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(page.locator('.problem-list a')).toHaveCount(9);
+ await page.getByRole('button',{name:'Try again',exact:true}).click();await expect(page.locator('.problem-list a')).toHaveCount(10);
  expect(await page.locator('.problem-index').allTextContents()).toEqual(['5','11','13','17','19','21','33','41','55','63']);
  let failReference=true;await page.route('**/api/problems/ch2-two-trains/reference',async route=>{if(failReference){failReference=false;await route.fulfill({status:502,contentType:'text/html',body:'<html>Bad Gateway</html>'});}else await route.continue();});
  await page.getByRole('link',{name:/Two trains/}).click();await expect(page.getByRole('main').getByRole('alert')).toHaveText('The server is unavailable right now. Please try again.');

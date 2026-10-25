@@ -18,7 +18,7 @@ describe('Chapter 2 reviewed kinematics and safe planning',()=>{
   }
   const dto=publicProblem('id','v1',1,p);expect(dto).not.toHaveProperty('reference');expect(dto).not.toHaveProperty('target');expect(dto).not.toHaveProperty('templates');
  });
- it('keeps the missing graph unavailable and records all multipart interpretations',()=>{
+ it('preserves supplied-source exercises and records all multipart interpretations',()=>{
   expect(chapterTwoProblems.some(p=>p.data.problemNumber===17)).toBe(false);
   const p=(number:number)=>chapterTwoProblems.find(p=>p.data.problemNumber===number)!.data;
   expect(p(5).reference[4].text).toContain('359');
