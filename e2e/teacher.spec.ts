@@ -288,7 +288,7 @@ test('classroom chat survives browsing separate problem references',async({page}
  const teacherMessages=await log.locator('.teacher-message > p').allTextContents();expect(teacherMessages.slice(-2)).toEqual(['Now let’s check this second step.','One more thought about the first step.']);
  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Problems',exact:true}).click();
  await expect(page).toHaveURL(/\/library/);await expect(page.getByRole('heading',{name:'Problems',exact:true})).toBeVisible();
- await expect(page.getByRole('link',{name:/The sprinter’s start/})).toBeVisible();await expect(page.getByText(/Waiting for Fig. 2–40/)).toBeVisible();
+ await expect(page.getByRole('link',{name:/The sprinter’s start/})).toBeVisible();await expect(page.getByRole('link',{name:/Reading a position–time graph/})).toBeVisible();await expect(page.locator('.pending-problem')).toHaveCount(0);
  await page.getByRole('link',{name:/A changing position/}).click();await expect(page.getByRole('heading',{name:'Worked solution'})).toBeVisible();await expect(page.locator('.reference-question .motion-diagram')).toBeVisible();
  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('link',{name:'Classroom',exact:true}).click();await expect(page.getByLabel('Message your student')).toBeVisible();await expect(page.locator('.classroom-title')).not.toContainText('The drive home');await page.goto(`/sessions/${id}`);await expect(log.getByText('One more thought about the first step.',{exact:true})).toBeVisible();
  const active=await page.evaluate(()=>localStorage.getItem('chalklight-classroom-stewie-v1'));expect(active).toBe(id);

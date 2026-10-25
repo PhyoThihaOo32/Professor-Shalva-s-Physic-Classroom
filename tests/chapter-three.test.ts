@@ -64,7 +64,7 @@ describe('Chapter 3 reference physics',()=>{
 });
 describe('chapter navigation and incomplete content',()=>{
  it('has no unresolved missing-data rows after original replacements',()=>{
-  expect(courseChapters.map(c=>c.number)).toEqual([2,3,4,5]);
+  expect(courseChapters.map(c=>c.number)).toEqual([2,3,4,5,7]);
   const pending=courseChapter('chapter-3').pending;
   expect(pending).toEqual([]);
  });

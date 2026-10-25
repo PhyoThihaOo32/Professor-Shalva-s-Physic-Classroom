@@ -1,6 +1,6 @@
 # Problem chapters
 
-The Problems page offers four chapter links in the existing lo-fi theme. The selected chapter lives in the URL, survives refresh and sign-in, and is retained when returning from a reference or Professor Shalva’s guide. References remain separate from live conversations.
+The Problems page offers five chapter links in the existing lo-fi theme. The selected chapter lives in the URL, survives refresh and sign-in, and is retained when returning from a reference or Professor Shalva’s guide. References remain separate from live conversations.
 
 | Chapter | Content |
 | --- | --- |
@@ -8,6 +8,21 @@ The Problems page offers four chapter links in the existing lo-fi theme. The sel
 | 3 · Kinematics in Two or Three Dimensions; Vectors | Seven supplied problems plus five original practice versions, all with diagrams and eight-step solutions |
 | 4 · Dynamics: Newton’s Laws of Motion | Chapter section ready for question text |
 | 5 · Using Newton’s Laws: Friction, Circular Motion | Chapter section ready for question text |
+| 7 · Work and Energy | Thirteen exercises, each with an original descriptive figure and eight-step worked solution |
+
+## Chapter 7
+
+Available exercises: **1, 5, 11, 13, 15, 17, 18, 25, 29, 37, 55, 57, 65**. Topics include signed work, friction, stacking books, work–energy changes, dot products, direction cosines, and the area under a spring-force graph.
+
+The pasted section repeats the book question and includes a disconnected lever caption. The duplicate and caption are omitted; the complete box and ramp-cart questions are organized as 11 and 17. Supplied question text is retained in normalized notation.
+
+- **15 · Original practice:** A 30° straight cable and a total moving mass of 2250 kg make the gondola model explicit. At constant speed, motor work is +32.5 MJ and gravity does −32.5 MJ. With a constant pull doing 10% more work over the same route, acceleration is 0.490 m/s² up the cable. Without path geometry and a force model, part (c) has no unique acceleration.
+- **17:** The cart model explicitly neglects friction. The push is 17° below horizontal while motion is 12° above it, giving a 29° force–displacement angle. Gravity and push do opposite works; normal work is zero.
+- **18:** The scalar x is dimensionless. The dot product is 12x² in squared vector units; the stored scalar target is its coefficient.
+- **25 · Original practice:** The scrambled vector assignments are declared as a = (9.0, −8.5, 0), B = (−8.0, 6.1, 4.2), and C = (5.8, −9.2, 0). The three scalar products are 6.55, −226.37, and 27.88 before measurement rounding.
+- **37:** The spring figure shades only the trapezoid between 0.030 m and 0.075 m on the external-force graph. Its area is +0.1535625 J before rounding; the restoring force does opposite work.
+
+References distinguish individual force work from total work, use positive friction coefficients, and check the eight books using both individual height changes and the combined centre of mass. All figures use native SVG and matching givens.
 
 ## Chapter 3
 
@@ -33,7 +48,7 @@ The supplied questions are normalized for notation. Original practice versions s
 
 ## Implementation and verification
 
-`lib/course.ts` contains public chapter and pending-question metadata. `lib/chapter-three.ts` holds server-owned solutions and schema-validated content. Supplied-question diagrams are authored SVG in `components/chapter-three-diagrams.tsx`. Original practice givens live in `lib/practice-data.ts`, validated solutions in `lib/original-practice.ts`, and figures in `components/practice-diagrams.tsx`. Public figure data contains only givens. Original exercise IDs are stable; changing a figure’s values requires a new exercise ID to preserve existing references.
+`lib/course.ts` contains public chapter and pending-question metadata. `lib/chapter-three.ts` and `lib/chapter-seven.ts` hold server-owned solutions and schema-validated content. Supplied Chapter 3 diagrams are authored SVG in `components/chapter-three-diagrams.tsx`. Original practice givens live in `lib/practice-data.ts`, validated solutions in `lib/original-practice.ts`, and figures in `components/practice-diagrams.tsx`. Chapter 7 selects figures by stable problem ID through `lib/energy-figures.ts` and renders them in `components/energy-diagrams.tsx`. No new database fields or diagram enum values are required, preserving compatibility during rolling deployments. Original exercise IDs are stable; changing a figure’s values requires a new exercise ID to preserve existing references.
 
 `npm run db:seed` adds chapters and immutable problem versions idempotently. It preserves existing published versions and conversations; no schema migration or history reset is needed. Teacher and professor conversation behavior is unchanged.
 

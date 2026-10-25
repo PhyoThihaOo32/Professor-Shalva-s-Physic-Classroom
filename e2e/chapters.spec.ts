@@ -5,7 +5,7 @@ test('chapter selection, worked references, and original practice survive naviga
  const mutations:string[]=[];page.on('request',request=>{if(request.method()==='POST')mutations.push(request.url());});
  await page.goto('/library?student=bart-v1');
  const chapters=page.getByRole('navigation',{name:'Problem chapters'});
- await expect(chapters.getByRole('link')).toHaveCount(4);
+ await expect(chapters.getByRole('link')).toHaveCount(5);
  await chapters.getByRole('link',{name:'03 Vectors & projectiles'}).click();
  await expect(page.getByRole('heading',{name:'Kinematics in Two or Three Dimensions; Vectors'})).toBeVisible();
  await expect(page.locator('.problem-list a')).toHaveCount(12);

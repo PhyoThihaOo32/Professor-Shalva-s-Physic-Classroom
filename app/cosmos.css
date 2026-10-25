@@ -597,7 +597,7 @@ footer{gap:16px;flex-wrap:wrap}
 .reference-library .problem-row {min-height:86px;}
 .reference-library .problem-row h3 {font-size:16px;}
 .reference-library .pending-problem {align-items:center;}
-.problem-chapters {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 24px;}
+.problem-chapters {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 24px;}
 .problem-chapters a {display:flex;align-items:center;gap:10px;min-height:52px;padding:12px;border-radius:12px;background:#b2b4db0c;color:var(--muted);font-size:12px;line-height:1.5;transition:background .2s,color .2s;}
 .problem-chapters a>span {color:var(--lofi-lavender);font-size:11px;font-variant-numeric:tabular-nums;}
 .problem-chapters a:hover {background:#c5b0e51b;color:var(--ink);}
