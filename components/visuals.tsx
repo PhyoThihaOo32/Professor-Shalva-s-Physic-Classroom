@@ -7,6 +7,8 @@ import {PracticeDiagram} from './practice-diagrams';
 import {originalPracticeFigure} from '@/lib/practice-data';
 import {energyFigure} from '@/lib/energy-figures';
 import {EnergyDiagram} from './energy-diagrams';
+import {rotationFigure} from '@/lib/rotation-figures';
+import {RotationDiagram} from './rotation-diagrams';
 import type {CSSProperties} from 'react';
 import {findPersona} from '@/lib/domain';
 import {ProfessorPortrait} from './professor-portrait';
@@ -46,6 +48,8 @@ export function Avatar({id,size=64}:{id:string;size?:number}){
  </svg>;
 }
 export function Diagram({kind,caption,large=false,problemId}:{kind:ProblemData['diagram'];caption:string;large?:boolean;problemId?:string}){
+ const rotation=rotationFigure(problemId);
+ if(rotation)return <RotationDiagram figure={rotation} caption={caption} large={large}/>;
  const energy=energyFigure(problemId);
  if(energy)return <EnergyDiagram kind={energy} caption={caption} large={large}/>;
  const practice=originalPracticeFigure(problemId);

@@ -21,6 +21,7 @@ Start with the [project overview](../README.md) or [local setup](development.md)
 | [Content authoring](content-authoring.md) | Owner access and reviewed problem publishing |
 | [Problem chapters](chapters.md) | Current chapter navigation, supplied exercises, and missing content |
 | [Chapter 2 notes](chapter-two.md) | Original exercise sources and earlier classroom behavior |
+| [Chapter 10 notes](chapter-ten.md) | Rotational-motion examples, original figures, and the chapter-specific guide |
 | [Course resources](course-resources.md) | Supplied material and authoring scope |
 | [Physics reference](physics-reference.md) | Reviewed original demo solutions |
 

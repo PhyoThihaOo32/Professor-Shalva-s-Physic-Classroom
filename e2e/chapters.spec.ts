@@ -5,7 +5,7 @@ test('chapter selection, worked references, and original practice survive naviga
  const mutations:string[]=[];page.on('request',request=>{if(request.method()==='POST')mutations.push(request.url());});
  await page.goto('/library?student=bart-v1');
  const chapters=page.getByRole('navigation',{name:'Problem chapters'});
- await expect(chapters.getByRole('link')).toHaveCount(3);
+ await expect(chapters.getByRole('link')).toHaveCount(4);
  await expect(page.locator('.sidebar').getByRole('navigation',{name:'Problem chapters'})).toBeVisible();
  await expect(page.getByRole('main').getByRole('navigation',{name:'Problem chapters'})).toHaveCount(0);
  await chapters.getByRole('link',{name:'03 Vectors & projectiles'}).click();

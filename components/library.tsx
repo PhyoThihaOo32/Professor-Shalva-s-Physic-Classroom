@@ -25,7 +25,7 @@ export function Library({studentId,chapterId}:{studentId?:string;chapterId?:stri
  return <div className="page library reference-library">
   <div className="problems-intro"><picture className="problems-jamming"><source media="(prefers-reduced-motion: reduce)" srcSet="/images/problems-jamming-still.png"/><Image src="/images/problems-jamming.gif" width={480} height={270} alt="" unoptimized loading="eager"/></picture>
    <header className="problems-page-heading"><h1>Problems</h1><Link className="problem-guide-link" href={problemLibraryHref(chapter.id,studentId).replace('/library','/library/guide')} aria-label="Professor Shalva’s problem-solving guide" title="Professor Shalva’s problem-solving guide"><NotebookPen size={18}/></Link></header>
-   <section className="library-chapter-heading"><div><span className="label">CHAPTER {chapter.number}</span><h2>{chapter.title}</h2></div></section>
+   <section className="library-chapter-heading"><div><span className="label">CHAPTER {chapter.number}</span><h2>{chapter.title}</h2>{chapter.number===10&&<p className="chapter-bank-note">Worked examples and practice questions · numbered for this bank. Source labels appear below each title.</p>}</div></section>
   </div>
   {error&&<div><p className="error" role="alert">{error}</p><button className="text-button" onClick={()=>{setError('');setRetry(n=>n+1);}}>Try again</button></div>}{!problems&&!error&&<p role="status">Loading problems…</p>}
   {problems&&<div className="problem-list">{rows.length?rows.map(({number,problem:p,pending})=>p?<article className="problem-item" key={p.id}>

@@ -8,7 +8,8 @@ export type CourseChapter={id:string;number:number;title:string;shortTitle:strin
 export const courseChapters:CourseChapter[]=[
  {id:chapterTwoId,number:2,title:chapterTwoTitle,shortTitle:'Motion in 1D',pending:[]},
  {id:'chapter-3',number:3,title:'Kinematics in Two or Three Dimensions; Vectors',shortTitle:'Vectors & projectiles',pending:[]},
- {id:'chapter-7',number:7,title:'Work and Energy',shortTitle:'Work & energy',pending:[]}
+ {id:'chapter-7',number:7,title:'Work and Energy',shortTitle:'Work & energy',pending:[]},
+ {id:'chapter-10',number:10,title:'Rotational Motion',shortTitle:'Rotational motion',pending:[]}
 ];
 export function courseChapter(id:string|undefined){return courseChapters.find(chapter=>chapter.id===id)??courseChapters[0];}
 export function problemPageChapter(path:string,requested?:string){

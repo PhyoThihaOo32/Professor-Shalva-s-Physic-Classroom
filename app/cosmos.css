@@ -591,6 +591,15 @@ footer{gap:16px;flex-wrap:wrap}
 .problem-guide-steps h2 {font-size:17px;line-height:1.5;margin:0 0 7px;}
 .problem-guide-steps p {font-size:13px;line-height:1.8;margin:0;max-width:430px;}
 .guide-source {font-size:11px;margin:24px 0 0;color:var(--muted);}
+.guide-lecture-slides {margin-top:28px;border-top:1px solid var(--line);padding-top:18px;}
+.guide-lecture-slides summary {cursor:pointer;color:var(--lofi-mint);font-size:14px;}
+.guide-lecture-slides>div {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:20px;}
+.guide-lecture-slides figure {margin:0;min-width:0;}
+.guide-lecture-slides img {display:block;width:100%;height:auto;border-radius:8px;}
+.guide-lecture-slides figcaption {margin-top:8px;font-size:12px;color:var(--muted);}
+.chapter-bank-note {max-width:580px;font-size:13px;line-height:1.7;margin:12px 0 0;color:var(--muted);}
+.chapter-three-diagram.rotation-diagram svg text {font-size:18px;}
+@media(max-width:750px){.guide-lecture-slides>div{grid-template-columns:1fr;}}
 @media(max-width:750px){.problem-guide-steps {grid-template-columns:1fr;}.guide-heading h1 {font-size:27px;}.guide-heading {margin-bottom:18px;}.problem-guide-steps li {padding:17px 0;}.guide-animation img {object-position:40% center;}}
 .reference-library .library-chapter-heading {border:0;padding:0 0 25px;}
 .reference-library .library-chapter-heading h2 {font-size:21px;max-width:520px;}
@@ -633,7 +642,7 @@ footer{gap:16px;flex-wrap:wrap}
  .sidebar:has(.sidebar-chapters) {height:auto;min-height:65px;flex-wrap:wrap;row-gap:8px;padding-top:10px;padding-bottom:8px;}
  .sidebar-chapters {width:100%;margin:0;}
  .sidebar-chapters-label {display:none;}
- .sidebar .chapter-options {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;width:100%;margin:0;}
+ .sidebar .chapter-options {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;width:100%;margin:0;}
  .sidebar .chapter-options a {gap:6px;min-width:0;min-height:40px;height:auto;padding:6px 4px;font-size:10px;line-height:1.5;}
  .sidebar .chapter-options .chapter-number {font-size:10px;}
  .reference-library .pending-problem {flex-wrap:wrap;}.pending-problem>.tiny {margin-left:36px;}.chapter-three-diagram {min-width:0;}

@@ -9,7 +9,7 @@ test('problems expand in place with keyboard controls, retry, refresh, and one o
  await expect(spring).toBeVisible();expect(references).toEqual([]);
  await expect(page.locator('.embedded-reference')).toHaveCount(0);
  const chapters=page.locator('.sidebar').getByRole('navigation',{name:'Problem chapters'});
- await expect(chapters.getByRole('link')).toHaveCount(3);
+ await expect(chapters.getByRole('link')).toHaveCount(4);
  let fail=true;
  await page.route('**/api/problems/ch7-spring-work/reference',async route=>{
   if(fail){fail=false;await route.fulfill({status:502,contentType:'text/html',body:'<html>Unavailable</html>'});}else await route.continue();

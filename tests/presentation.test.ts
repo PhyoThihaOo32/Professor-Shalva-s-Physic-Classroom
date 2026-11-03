@@ -53,6 +53,9 @@ describe('readable saved calculations',()=>{
   for(const fragment of fragments)expect(()=>katex.renderToString(fragment,{throwOnError:true})).not.toThrow();
  });
  it('splits only top-level chained equations and converts label notation safely',()=>{
+  const work='W=\\int\\tau\\,d\\theta=\\tau\\Delta\\theta';
+  expect(equationLines(work)).toEqual([work]);
+  expect(()=>katex.renderToString(equationLines(work)[0],{throwOnError:true})).not.toThrow();
   expect(equationLines(String.raw`t_1=\frac{210}{95},t_2=4.5-t_1,d_2=65t_2,d=210+d_2,v_{avg}=d/4.5`)).toHaveLength(5);
   expect(equationLines(String.raw`\begin{aligned}a&=1\\b&=2\end{aligned}`)).toHaveLength(1);
   expect(plainMath(String.raw`t_1 = \frac{210}{95} h, x^2`)).toBe('t₁ = (210) ÷ (95) h, x²');

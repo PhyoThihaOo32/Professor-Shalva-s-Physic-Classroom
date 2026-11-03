@@ -72,7 +72,7 @@ export function equationLines(math:string):string[]{
  const lines:string[]=[];let start=0,depth=0;
  for(let i=0;i<math.length;i++){
   if(math[i]==='{')depth++;else if(math[i]==='}')depth--;
-  if(depth!==0)continue;
+  if(depth!==0||math[i-1]==='\\')continue;
   const separator=/^(?:,?\s*\\(?:qquad|quad)\s*|[,;]\s*(?=[A-Za-z][A-Za-z0-9_{}\\]*\s*=))/.exec(math.slice(i));
   if(separator){const value=math.slice(start,i).trim().replace(/[,;]$/,'');if(value)lines.push(value);i+=separator[0].length-1;start=i+1;}
  }

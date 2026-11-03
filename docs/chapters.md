@@ -1,6 +1,6 @@
 # Problem chapters
 
-The Problems sidebar offers Chapters 2, 3, and 7 in the existing lo-fi theme. The selected chapter lives in the URL, survives refresh and sign-in, and is retained when returning from a reference or Professor Shalva’s guide. On phones, the same sidebar presents a compact row of chapter choices. Folded desktop navigation retains the chapter numbers and accessible names.
+The Problems sidebar offers Chapters 2, 3, 7, and 10 in the existing lo-fi theme. The selected chapter lives in the URL, survives refresh and sign-in, and is retained when returning from a reference or Professor Shalva’s guide. On phones, the same sidebar presents a compact row of chapter choices. Folded desktop navigation retains the chapter numbers and accessible names.
 
 Click a problem to expand its question, givens, diagram, and eight-step walkthrough directly in the list. One walkthrough opens at a time, and its reference is fetched only when requested. A URL fragment preserves which problem is open after refresh; the walkthrough restarts at step one. The “Open full page” link retains standalone references for sharing and focused reading. References remain separate from live conversations.
 
@@ -9,8 +9,13 @@ Click a problem to expand its question, givens, diagram, and eight-step walkthro
 | 2 · Describing Motion: Kinematics in One Dimension | Nine supplied references plus an original position–time graph exercise in slot 17 |
 | 3 · Kinematics in Two or Three Dimensions; Vectors | Seven supplied problems plus five original practice versions, all with diagrams and eight-step solutions |
 | 7 · Work and Energy | Thirteen exercises, each with an original descriptive figure and eight-step worked solution |
+| 10 · Rotational Motion | Twenty-five supplied examples and original practice entries, with descriptive diagrams, worked steps, and a chapter-specific rotational guide |
 
 Chapters 4 and 5 are hidden for now. Stored chapter records and conversation history are preserved; old library links to these chapters return to Chapter 2.
+
+## Chapter 10
+
+The twenty-five entries cover angles, angular rates, torque, rotational dynamics, inertia, rolling, and energy. Every entry has a descriptive original figure and eight worked steps. Supplied example/exercise labels remain in subtitles; local bank positions avoid duplicate numbers. The chapter-specific guide follows the eight rotational-dynamics steps from the supplied lecture slides, available below the reminder. See [Chapter 10 notes](chapter-ten.md) for added data, corrected precision, and model assumptions.
 
 ## Chapter 7
 
